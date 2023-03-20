@@ -1,25 +1,18 @@
 package org.yuezhikong.JavaIMAndroid;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import android.util.Base64;
 
 import com.hjq.permissions.OnPermissionCallback;
 import com.hjq.permissions.Permission;
@@ -176,9 +169,7 @@ public class MainActivity extends AppCompatActivity {
                     InputStream inFromServer = socket.getInputStream();
                     DataInputStream in = new DataInputStream(inFromServer);
                     String Message = in.readUTF();
-                    runOnUiThread(()->{
-                        SocketOutput.setText(SocketOutput.getText() + "服务器响应： " + Message + "\r\n");
-                    });
+                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText() + "服务器响应： " + Message + "\r\n"));
                     Thread thread = new Thread(recvmessage);
                     thread.start();
                     thread.setName("RecvMessage Thread");
@@ -201,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                 .request(new OnPermissionCallback() {
 
                     @Override
-                    public void onGranted(List<String> permissions, boolean all) {
+                    public void onGranted(@NonNull List<String> permissions, boolean all) {
                     }
 
                     @Override
@@ -274,7 +265,13 @@ public class MainActivity extends AppCompatActivity {
                     //获取文件
                     File Storage = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/JavaIMFiles");
                     if (!Storage.exists()) {
-                        Storage.mkdir();
+                        if (!Storage.mkdir())
+                        {
+                            runOnUiThread(() -> {
+                                TextView ErrorOutput = findViewById(R.id.Error);
+                                ErrorOutput.setText(R.string.ErrorAccessDenied);
+                            });
+                        }
                     }
                     File ServerPublicKeyFile = new File(Storage.getAbsolutePath() + "/ServerPublicKey.key");
                     if (!ServerPublicKeyFile.exists()) {
