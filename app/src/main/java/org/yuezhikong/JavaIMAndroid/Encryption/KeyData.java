@@ -1,4 +1,4 @@
-package org.yuezhikong.JavaIMAndroid;
+package org.yuezhikong.JavaIMAndroid.Encryption;
 
 public class KeyData {
     public java.security.PublicKey publicKey;

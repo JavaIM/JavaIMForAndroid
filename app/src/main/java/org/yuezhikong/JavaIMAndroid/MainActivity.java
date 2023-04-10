@@ -8,15 +8,23 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
+
+import cn.hutool.crypto.SecureUtil;
+import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.Gson;
 import com.hjq.permissions.OnPermissionCallback;
 import com.hjq.permissions.Permission;
 import com.hjq.permissions.XXPermissions;
+
+import org.yuezhikong.JavaIMAndroid.Encryption.KeyData;
+import org.yuezhikong.JavaIMAndroid.Encryption.RSA;
+import org.yuezhikong.JavaIMAndroid.Protocol.ProtocolData;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -30,16 +38,37 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity {
+    private cn.hutool.crypto.symmetric.AES AES;
     private KeyData RSAKey;
     private boolean Session = false;
     private Socket socket;
     public static String ServerAddr = "";
     public static int ServerPort = 0;
+    private final int ProtocolVersion = 1;
+    private void ErrorOutputToUserScreen(int id)
+    {
+        runOnUiThread(()->{
+            TextView ErrorOutput = findViewById(R.id.Error);
+            ErrorOutput.setText(id);
+        });
+    }
+
+    public void ClearScreen(View view) {
+        runOnUiThread(()->{
+            TextView SocketDisplay = findViewById(R.id.ChatLog);
+            SocketDisplay.setText("");
+        });
+    }
+
     class GoToSettingActivityListen implements View.OnClickListener {
         @Override
         public void onClick(View v) {
@@ -92,13 +121,14 @@ public class MainActivity extends AppCompatActivity {
             Runnable NetworkThread = () ->
             {
                 try {
-                    // 创建Socket对象 & 指定服务端的IP 及 端口号
-                    socket = new Socket(IPAddress, port);
+
                     //获取文件
-                    /*
                     File Storage = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/JavaIMFiles");
                     if (!Storage.exists()) {
-                        Storage.mkdir();
+                        if (!Storage.mkdir())
+                        {
+                            ErrorOutputToUserScreen(R.string.ErrorAccessDenied);
+                        }
                     }
                     File ServerPublicKeyFile = new File(Storage.getAbsolutePath() + "/ServerPublicKey.key");
                     if (!ServerPublicKeyFile.exists()) {
@@ -106,51 +136,65 @@ public class MainActivity extends AppCompatActivity {
                             TextView ErrorOutput = findViewById(R.id.Error);
                             ErrorOutput.setText(R.string.Error5);
                         });
-                        socket.close();
                         Session = false;
+                        return;
                     }
-                     */
                     RSAKey = RSA.generateKeyToReturn();
+                    // 创建Socket对象 & 指定服务端的IP 及 端口号
+                    socket = new Socket(IPAddress, port);
                     @SuppressLint("SetTextI18n")
                     Runnable recvmessage = () ->
                     {
-                        PrivateKey privateKey;
-                        try {
-                            privateKey = RSAKey.privateKey;
-                        } catch (Exception e) {
-                            Session = false;
-                            return;
-                        }
-                        while (true) {
+                        while (true)
+                        {
                             BufferedReader reader;//获取输入流
                             try {
                                 reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                                 String msg = reader.readLine();
-                                if (msg == null) {
+                                if (msg == null)
+                                {
+                                    ErrorOutputToUserScreen(R.string.Disconnected);
+                                    System.exit(0);
                                     break;
                                 }
-                                if (privateKey != null) {
-                                    msg = RSA.decrypt(msg, privateKey);
-                                }
+                                msg = AES.decryptStr(msg);
                                 msg = java.net.URLDecoder.decode(msg, "UTF-8");
+                                // 将信息从Protocol Json中取出
+                                Gson gson = new Gson();
+                                ProtocolData protocolData = gson.fromJson(msg,ProtocolData.class);
+                                if (protocolData.getMessageHead().getVersion() != ProtocolVersion)
+                                {
+                                    runOnUiThread(()->{
+                                        TextView SocketDisplay = findViewById(R.id.ChatLog);
+                                        SocketDisplay.setText(SocketDisplay.getText().toString()+"\r\n目标服务器协议版本与您客户端不符，目标服务器协议版本为："+protocolData.getMessageHead().getVersion()+"此客户端协议版本为："+ProtocolVersion);
+                                    });
+                                    socket.close();
+                                    break;
+                                }
+                                // type目前只实现了chat,FileTransfer延后
+                                if (protocolData.getMessageHead().getType() != 1)
+                                {
+                                    runOnUiThread(()->{
+                                        TextView SocketDisplay = findViewById(R.id.ChatLog);
+                                        SocketDisplay.setText(SocketDisplay.getText().toString()+"\r\n有人想要为您发送一个文件，但是此客户端暂不支持FileTransfer协议");
+                                    });
+                                }
+                                msg = protocolData.getMessageBody().getMessage();
                                 String finalMsg = msg;
-                                runOnUiThread(
-                                        () -> {
-                                            TextView SocketOutput = findViewById(R.id.ChatLog);
-                                            SocketOutput.setText(SocketOutput.getText() + finalMsg + "\r\n");
-                                        }
-                                );
-                            } catch (IOException e) {
-                                if (!"Connection reset by peer".equals(e.getMessage()) && !"Connection reset".equals(e.getMessage()) && !"Socket is closed".equals(e.getMessage())) {
+                                runOnUiThread(()->{
+                                    TextView SocketDisplay = findViewById(R.id.ChatLog);
+                                    SocketDisplay.setText(SocketDisplay.getText().toString() + "\r\n" + finalMsg);
+                                });
+                            }
+                            catch (IOException e)
+                            {
+                                if (!"Connection reset by peer".equals(e.getMessage()) && !"Connection reset".equals(e.getMessage()) && !"Socket is closed".equals(e.getMessage()))  {
                                     e.printStackTrace();
-                                } else {
-                                    runOnUiThread(
-                                            () -> {
-                                                TextView SocketOutput = findViewById(R.id.ChatLog);
-                                                SocketOutput.setText(SocketOutput.getText() + "连接早已被关闭");
-                                                Session = false;
-                                            }
-                                    );
+                                }
+                                else
+                                {
+                                    ErrorOutputToUserScreen(R.string.Disconnected);
+                                    System.exit(0);
                                     break;
                                 }
                             }
@@ -158,23 +202,39 @@ public class MainActivity extends AppCompatActivity {
                     };
                     TextView SocketOutput = findViewById(R.id.ChatLog);
                     runOnUiThread(()->{
-                        SocketOutput.setText(SocketOutput.getText() + "连接到主机：" + IPAddress + " ，端口号：" + port + "\r\n");
-                        SocketOutput.setText(SocketOutput.getText() + socket.getRemoteSocketAddress().toString() + "\r\n");
+                        SocketOutput.setText(SocketOutput.getText() + "\r\n连接到主机：" + IPAddress + " ，端口号：" + port);
+                        SocketOutput.setText(SocketOutput.getText() + "\r\n" + socket.getRemoteSocketAddress().toString());
                     });
+                    String ServerPublicKey = Objects.requireNonNull(RSA.loadPublicKeyFromFile(ServerPublicKeyFile.getAbsolutePath())).PublicKey;
                     OutputStream outToServer = socket.getOutputStream();
                     DataOutputStream out = new DataOutputStream(outToServer);
-                    String ClientRSAKey = java.net.URLEncoder.encode(Base64.encodeToString(RSAKey.publicKey.getEncoded(),Base64.NO_WRAP), "UTF-8");
-                    out.writeUTF(ClientRSAKey);
-                    out.writeUTF("Hello from " + socket.getLocalSocketAddress());//通讯握手开始
                     InputStream inFromServer = socket.getInputStream();
                     DataInputStream in = new DataInputStream(inFromServer);
+
+                    String ClientRSAKey = java.net.URLEncoder.encode(Base64.encodeToString(RSAKey.publicKey.getEncoded(),Base64.NO_WRAP), "UTF-8");//通讯握手开始
+                    out.writeUTF(ClientRSAKey);
+                    String DecryptStr = RSA.decrypt(in.readUTF(),RSAKey.privateKey);
+                    String finalDecryptStr1 = DecryptStr;
+                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText()+"\r\n服务器响应："+ finalDecryptStr1));
+                    out.writeUTF(RSA.encrypt("Hello,Server! This Message By Client RSA System",ServerPublicKey));
+                    String RandomByClient = UUID.randomUUID().toString();
+                    out.writeUTF(RSA.encrypt(java.net.URLEncoder.encode(RandomByClient, "UTF-8"),ServerPublicKey));
+                    String RandomByServer = java.net.URLDecoder.decode(RSA.decrypt(in.readUTF(),RSAKey.privateKey),"UTF-8");
+                    byte[] KeyByte = new byte[32];
+                    byte[] SrcByte = Base64.encodeToString((RandomByClient+RandomByServer).getBytes(StandardCharsets.UTF_8),Base64.NO_WRAP).getBytes(StandardCharsets.UTF_8);
+                    System.arraycopy(SrcByte,0,KeyByte,0,31);
+                    SecretKey key = SecureUtil.generateKey(SymmetricAlgorithm.AES.getValue(),KeyByte);
+                    AES = cn.hutool.crypto.SecureUtil.aes(key.getEncoded());
+                    DecryptStr = AES.decryptStr(in.readUTF());
+                    String finalDecryptStr = DecryptStr;
+                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText() + "\r\n服务器响应："+ finalDecryptStr));
+                    out.writeUTF(Base64.encodeToString(AES.encrypt("Hello,Server! This Message By Client AES System"),Base64.NO_WRAP));
+                    out.writeUTF("Hello from " + socket.getLocalSocketAddress());
                     String Message = in.readUTF();
-                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText() + "服务器响应： " + Message + "\r\n"));
+                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText() + "\r\n服务器响应： " + Message));//握手结束
                     Thread thread = new Thread(recvmessage);
                     thread.start();
                     thread.setName("RecvMessage Thread");
-
-
                 } catch (IOException e) {
                     runOnUiThread(()->{
                         TextView ErrorOutput = findViewById(R.id.Error);
@@ -191,12 +251,12 @@ public class MainActivity extends AppCompatActivity {
         XXPermissions.with(this).permission(Permission.MANAGE_EXTERNAL_STORAGE)
                 .request(new OnPermissionCallback() {
 
-                    @Override
-                    public void onGranted(@NonNull List<String> permissions, boolean all) {
-                    }
+                             @Override
+                             public void onGranted(@NonNull List<String> permissions, boolean all) {
+                             }
 
-                    @Override
-                    public void onDenied(@NonNull List<String> permissions, boolean never) {
+                             @Override
+                             public void onDenied(@NonNull List<String> permissions, boolean never) {
                         if (never) {
                             // 如果是被永久拒绝就跳转到应用权限系统设置页面
                             XXPermissions.startPermissionActivity(MainActivity.this, permissions);
@@ -255,34 +315,26 @@ public class MainActivity extends AppCompatActivity {
                     clientcommand = true;
                 }
                 if (!clientcommand) {
-                    // 加密信息
+                    // 应当在这里加入json处理
                     String input = UserMessageFinal;
+                    Gson gson = new Gson();
+                    ProtocolData protocolData = new ProtocolData();
+                    ProtocolData.MessageHeadBean MessageHead = new ProtocolData.MessageHeadBean();
+                    MessageHead.setVersion(ProtocolVersion);
+                    MessageHead.setType(1);
+                    protocolData.setMessageHead(MessageHead);
+                    ProtocolData.MessageBodyBean MessageBody = new ProtocolData.MessageBodyBean();
+                    MessageBody.setFileLong(0);
+                    MessageBody.setMessage(input);
+                    protocolData.setMessageBody(MessageBody);
+                    input = gson.toJson(protocolData);
+                    // 加密信息
                     try {
                         input = java.net.URLEncoder.encode(input, "UTF-8");
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
-                    //获取文件
-                    File Storage = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/JavaIMFiles");
-                    if (!Storage.exists()) {
-                        if (!Storage.mkdir())
-                        {
-                            runOnUiThread(() -> {
-                                TextView ErrorOutput = findViewById(R.id.Error);
-                                ErrorOutput.setText(R.string.ErrorAccessDenied);
-                            });
-                        }
-                    }
-                    File ServerPublicKeyFile = new File(Storage.getAbsolutePath() + "/ServerPublicKey.key");
-                    if (!ServerPublicKeyFile.exists()) {
-                        runOnUiThread(() -> {
-                            TextView ErrorOutput = findViewById(R.id.Error);
-                            ErrorOutput.setText(R.string.Error5);
-                        });
-                        return;
-                    }
-                    String ServerPublicKey = Objects.requireNonNull(RSA.loadPublicKeyFromFile(ServerPublicKeyFile.getAbsolutePath())).PublicKey;
-                    input = RSA.encrypt(input, ServerPublicKey);
+                    input = Base64.encodeToString(AES.encrypt(input),Base64.NO_WRAP);
                     // 发送消息给服务器
                     try {
                         Objects.requireNonNull(writer).write(input);
@@ -298,7 +350,6 @@ public class MainActivity extends AppCompatActivity {
             NetWorkThread.setName("Network Thread");
         }
     }
-
     public void Disconnect(View view) {
         ((TextView)findViewById(R.id.Error)).setText("");
         if (socket == null)

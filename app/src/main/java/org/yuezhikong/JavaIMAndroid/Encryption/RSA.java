@@ -1,4 +1,4 @@
-package org.yuezhikong.JavaIMAndroid;
+package org.yuezhikong.JavaIMAndroid.Encryption;
 
 import android.util.Base64;
 
