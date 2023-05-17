@@ -1,5 +1,7 @@
 package org.yuezhikong.JavaIMAndroid;
 
+import static org.yuezhikong.JavaIMAndroid.ConfigFile.ProtocolVersion;
+
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
@@ -39,7 +41,6 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -53,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private Socket socket;
     public static String ServerAddr = "";
     public static int ServerPort = 0;
-    private final int ProtocolVersion = 1;
+
     private void ErrorOutputToUserScreen(int id)
     {
         runOnUiThread(()->{
@@ -121,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
             Runnable NetworkThread = () ->
             {
                 try {
-
                     //获取文件
                     File Storage = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/JavaIMFiles");
                     if (!Storage.exists()) {
@@ -172,19 +172,29 @@ public class MainActivity extends AppCompatActivity {
                                     break;
                                 }
                                 // type目前只实现了chat,FileTransfer延后
-                                if (protocolData.getMessageHead().getType() != 1)
+                                if (protocolData.getMessageHead().getType().equals("Chat"))
+                                {
+                                    msg = protocolData.getMessageBody().getMessage();
+                                    String finalMsg = msg;
+                                    runOnUiThread(()->{
+                                        TextView SocketDisplay = findViewById(R.id.ChatLog);
+                                        SocketDisplay.setText(SocketDisplay.getText().toString() + "\r\n" + finalMsg);
+                                    });
+                                }
+                                else if (protocolData.getMessageHead().getType().equals("FileTransfer"))
                                 {
                                     runOnUiThread(()->{
                                         TextView SocketDisplay = findViewById(R.id.ChatLog);
                                         SocketDisplay.setText(SocketDisplay.getText().toString()+"\r\n有人想要为您发送一个文件，但是此客户端暂不支持FileTransfer协议");
                                     });
                                 }
-                                msg = protocolData.getMessageBody().getMessage();
-                                String finalMsg = msg;
-                                runOnUiThread(()->{
-                                    TextView SocketDisplay = findViewById(R.id.ChatLog);
-                                    SocketDisplay.setText(SocketDisplay.getText().toString() + "\r\n" + finalMsg);
-                                });
+                                else
+                                {
+                                    runOnUiThread(()->{
+                                        TextView SocketDisplay = findViewById(R.id.ChatLog);
+                                        SocketDisplay.setText(SocketDisplay.getText().toString()+"\r\n服务端发来无法识别的非法数据包");
+                                    });
+                                }
                             }
                             catch (IOException e)
                             {
@@ -319,11 +329,11 @@ public class MainActivity extends AppCompatActivity {
                     String input = UserMessageFinal;
                     Gson gson = new Gson();
                     ProtocolData protocolData = new ProtocolData();
-                    ProtocolData.MessageHeadBean MessageHead = new ProtocolData.MessageHeadBean();
+                    ProtocolData.MessageHead MessageHead = new ProtocolData.MessageHead();
                     MessageHead.setVersion(ProtocolVersion);
-                    MessageHead.setType(1);
+                    MessageHead.setType("Chat");
                     protocolData.setMessageHead(MessageHead);
-                    ProtocolData.MessageBodyBean MessageBody = new ProtocolData.MessageBodyBean();
+                    ProtocolData.MessageBody MessageBody = new ProtocolData.MessageBody();
                     MessageBody.setFileLong(0);
                     MessageBody.setMessage(input);
                     protocolData.setMessageBody(MessageBody);
