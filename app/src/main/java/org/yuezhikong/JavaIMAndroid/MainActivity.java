@@ -2,27 +2,21 @@ package org.yuezhikong.JavaIMAndroid;
 
 import static org.yuezhikong.JavaIMAndroid.ConfigFile.ProtocolVersion;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
-
-import cn.hutool.crypto.SecureUtil;
-import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
-import com.hjq.permissions.OnPermissionCallback;
-import com.hjq.permissions.Permission;
-import com.hjq.permissions.XXPermissions;
 
 import org.yuezhikong.JavaIMAndroid.Encryption.KeyData;
 import org.yuezhikong.JavaIMAndroid.Encryption.RSA;
@@ -41,13 +35,16 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import cn.hutool.crypto.SecureUtil;
+import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
+
 public class MainActivity extends AppCompatActivity {
+    public static File UsedKey;
     private cn.hutool.crypto.symmetric.AES AES;
     private KeyData RSAKey;
     private boolean Session = false;
@@ -57,10 +54,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void ErrorOutputToUserScreen(int id)
     {
-        runOnUiThread(()->{
-            TextView ErrorOutput = findViewById(R.id.Error);
-            ErrorOutput.setText(id);
-        });
+        runOnUiThread(()-> Toast.makeText(MainActivity.this,getResources().getString(id),Toast.LENGTH_LONG).show());
     }
 
     public void ClearScreen(View view) {
@@ -69,26 +63,49 @@ public class MainActivity extends AppCompatActivity {
             SocketDisplay.setText("");
         });
     }
-
-    class GoToSettingActivityListen implements View.OnClickListener {
-        @Override
-        public void onClick(View v) {
-            ChangeToSettingActivity(v);
-        }
-    }
+    private ActivityResultLauncher<Intent> intentActivityResultLauncher;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         TextView ChatLog = findViewById(R.id.ChatLog);
         ChatLog.setMovementMethod(ScrollingMovementMethod.getInstance());
-        Button GoToSettingActivityButton = findViewById(R.id.button4);
-        GoToSettingActivityButton.setOnClickListener(new GoToSettingActivityListen());
-        requestPermission();
+        Button button = findViewById(R.id.button4);
+        button.setOnClickListener(this::ChangeToSettingActivity);
+        button = findViewById(R.id.button8);
+        button.setOnClickListener(this::Send);
+        button = findViewById(R.id.button2);
+        button.setOnClickListener(this::Connect);
+        button = findViewById(R.id.button3);
+        button.setOnClickListener(this::Disconnect);
+        button = findViewById(R.id.button6);
+        button.setOnClickListener(this::ClearScreen);
+        TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
+        if (fileList().length == 0) {
+            UsedKey = null;
+            DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
+        }
+        else
+        {
+            UsedKey = new File(getFilesDir().getPath()+"/"+(fileList()[0]));
+            DisplayUsedKeyTextView.setText(String.format("%s%s%s",getResources().getString(R.string.UsedKeyPrefix),UsedKey.getName(),getResources().getString(R.string.UsedKeySuffix)));
+        }
+        intentActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (UsedKey == null)
+            {
+                DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
+            }
+            else {
+                DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
+            }
+        });
     }
-    @SuppressLint("SetTextI18n")
     public void Connect(View view) {
-        ((TextView)findViewById(R.id.Error)).setText("");
+        if (UsedKey == null)
+        {
+            ErrorOutputToUserScreen(R.string.Error5);
+            return;
+        }
         if (socket == null)
         {
             Session = false;
@@ -101,19 +118,17 @@ public class MainActivity extends AppCompatActivity {
         String IPAddress = ServerAddr;
         if (IPAddress.isEmpty())
         {
-            TextView ErrorOutput = findViewById(R.id.Error);
-            ErrorOutput.setText(R.string.Error1);
+            ErrorOutputToUserScreen(R.string.Error1);
+            return;
         }
         int port = ServerPort;
         if (port <= 0)
         {
-            TextView ErrorOutput = findViewById(R.id.Error);
-            ErrorOutput.setText(R.string.Error2);
+            ErrorOutputToUserScreen(R.string.Error2);
         }
         if (port > 65535)
         {
-            TextView ErrorOutput = findViewById(R.id.Error);
-            ErrorOutput.setText(R.string.Error2);
+            ErrorOutputToUserScreen(R.string.Error2);
         }
         if (!Session)
         {
@@ -123,26 +138,15 @@ public class MainActivity extends AppCompatActivity {
             {
                 try {
                     //获取文件
-                    File Storage = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/JavaIMFiles");
-                    if (!Storage.exists()) {
-                        if (!Storage.mkdir())
-                        {
-                            ErrorOutputToUserScreen(R.string.ErrorAccessDenied);
-                        }
-                    }
-                    File ServerPublicKeyFile = new File(Storage.getAbsolutePath() + "/ServerPublicKey.key");
+                    File ServerPublicKeyFile = UsedKey;
                     if (!ServerPublicKeyFile.exists()) {
-                        runOnUiThread(()->{
-                            TextView ErrorOutput = findViewById(R.id.Error);
-                            ErrorOutput.setText(R.string.Error5);
-                        });
+                        ErrorOutputToUserScreen(R.string.Error5);
                         Session = false;
                         return;
                     }
                     RSAKey = RSA.generateKeyToReturn();
                     // 创建Socket对象 & 指定服务端的IP 及 端口号
                     socket = new Socket(IPAddress, port);
-                    @SuppressLint("SetTextI18n")
                     Runnable recvmessage = () ->
                     {
                         while (true)
@@ -154,7 +158,6 @@ public class MainActivity extends AppCompatActivity {
                                 if (msg == null)
                                 {
                                     ErrorOutputToUserScreen(R.string.Disconnected);
-                                    System.exit(0);
                                     break;
                                 }
                                 msg = AES.decryptStr(msg);
@@ -166,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
                                 {
                                     runOnUiThread(()->{
                                         TextView SocketDisplay = findViewById(R.id.ChatLog);
-                                        SocketDisplay.setText(SocketDisplay.getText().toString()+"\r\n目标服务器协议版本与您客户端不符，目标服务器协议版本为："+protocolData.getMessageHead().getVersion()+"此客户端协议版本为："+ProtocolVersion);
+                                        SocketDisplay.setText(String.format("%s\r\n目标服务器协议版本与您客户端不符，目标服务器协议版本为：%s，此客户端协议版本为：%s",SocketDisplay.getText().toString(),protocolData.getMessageHead().getVersion(),ProtocolVersion));
                                     });
                                     socket.close();
                                     break;
@@ -178,21 +181,21 @@ public class MainActivity extends AppCompatActivity {
                                     String finalMsg = msg;
                                     runOnUiThread(()->{
                                         TextView SocketDisplay = findViewById(R.id.ChatLog);
-                                        SocketDisplay.setText(SocketDisplay.getText().toString() + "\r\n" + finalMsg);
+                                        SocketDisplay.setText(String.format("%s\r\n%s",SocketDisplay.getText().toString(),finalMsg));
                                     });
                                 }
                                 else if (protocolData.getMessageHead().getType().equals("FileTransfer"))
                                 {
                                     runOnUiThread(()->{
                                         TextView SocketDisplay = findViewById(R.id.ChatLog);
-                                        SocketDisplay.setText(SocketDisplay.getText().toString()+"\r\n有人想要为您发送一个文件，但是此客户端暂不支持FileTransfer协议");
+                                        SocketDisplay.setText(String.format("%s\r\n有人想要为您发送一个文件，但是此客户端暂不支持FileTransfer协议",SocketDisplay.getText().toString()));
                                     });
                                 }
                                 else
                                 {
                                     runOnUiThread(()->{
                                         TextView SocketDisplay = findViewById(R.id.ChatLog);
-                                        SocketDisplay.setText(SocketDisplay.getText().toString()+"\r\n服务端发来无法识别的非法数据包");
+                                        SocketDisplay.setText(String.format("%s\r\n服务端发来无法识别的非法数据包",SocketDisplay.getText().toString()));
                                     });
                                 }
                             }
@@ -204,7 +207,6 @@ public class MainActivity extends AppCompatActivity {
                                 else
                                 {
                                     ErrorOutputToUserScreen(R.string.Disconnected);
-                                    System.exit(0);
                                     break;
                                 }
                             }
@@ -212,8 +214,8 @@ public class MainActivity extends AppCompatActivity {
                     };
                     TextView SocketOutput = findViewById(R.id.ChatLog);
                     runOnUiThread(()->{
-                        SocketOutput.setText(SocketOutput.getText() + "\r\n连接到主机：" + IPAddress + " ，端口号：" + port);
-                        SocketOutput.setText(SocketOutput.getText() + "\r\n" + socket.getRemoteSocketAddress().toString());
+                        SocketOutput.setText(String.format("%s\r\n连接到主机%s，端口号：%s",SocketOutput.getText(),IPAddress,port));
+                        SocketOutput.setText(String.format("%s\r\n%s",SocketOutput.getText(),socket.getRemoteSocketAddress().toString()));
                     });
                     String ServerPublicKey = Objects.requireNonNull(RSA.loadPublicKeyFromFile(ServerPublicKeyFile.getAbsolutePath())).PublicKey;
                     OutputStream outToServer = socket.getOutputStream();
@@ -225,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
                     out.writeUTF(ClientRSAKey);
                     String DecryptStr = RSA.decrypt(in.readUTF(),RSAKey.privateKey);
                     String finalDecryptStr1 = DecryptStr;
-                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText()+"\r\n服务器响应："+ finalDecryptStr1));
+                    runOnUiThread(()-> SocketOutput.setText(String.format("%s\r\n服务器响应：%s",SocketOutput.getText(), finalDecryptStr1)));
                     out.writeUTF(RSA.encrypt("Hello,Server! This Message By Client RSA System",ServerPublicKey));
                     String RandomByClient = UUID.randomUUID().toString();
                     out.writeUTF(RSA.encrypt(java.net.URLEncoder.encode(RandomByClient, "UTF-8"),ServerPublicKey));
@@ -237,19 +239,16 @@ public class MainActivity extends AppCompatActivity {
                     AES = cn.hutool.crypto.SecureUtil.aes(key.getEncoded());
                     DecryptStr = AES.decryptStr(in.readUTF());
                     String finalDecryptStr = DecryptStr;
-                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText() + "\r\n服务器响应："+ finalDecryptStr));
+                    runOnUiThread(()-> SocketOutput.setText(String.format("%s\r\n服务器响应：%s",SocketOutput.getText(),finalDecryptStr)));
                     out.writeUTF(Base64.encodeToString(AES.encrypt("Hello,Server! This Message By Client AES System"),Base64.NO_WRAP));
                     out.writeUTF("Hello from " + socket.getLocalSocketAddress());
                     String Message = in.readUTF();
-                    runOnUiThread(()-> SocketOutput.setText(SocketOutput.getText() + "\r\n服务器响应： " + Message));//握手结束
+                    runOnUiThread(()-> SocketOutput.setText(String.format("%s\r\n服务器响应：%s",SocketOutput.getText(),Message)));//握手结束
                     Thread thread = new Thread(recvmessage);
                     thread.start();
                     thread.setName("RecvMessage Thread");
                 } catch (IOException e) {
-                    runOnUiThread(()->{
-                        TextView ErrorOutput = findViewById(R.id.Error);
-                        ErrorOutput.setText(R.string.Error3);
-                    });
+                    ErrorOutputToUserScreen(R.string.Error3);
                 }
             };
             Thread NetworKThread = new Thread(NetworkThread);
@@ -257,27 +256,9 @@ public class MainActivity extends AppCompatActivity {
             NetworKThread.setName("Network Thread");
         }
     }
-    private void requestPermission() {
-        XXPermissions.with(this).permission(Permission.MANAGE_EXTERNAL_STORAGE)
-                .request(new OnPermissionCallback() {
-
-                             @Override
-                             public void onGranted(@NonNull List<String> permissions, boolean all) {
-                             }
-
-                             @Override
-                             public void onDenied(@NonNull List<String> permissions, boolean never) {
-                        if (never) {
-                            // 如果是被永久拒绝就跳转到应用权限系统设置页面
-                            XXPermissions.startPermissionActivity(MainActivity.this, permissions);
-                        }
-                    }
-                });
-    }
 
     //用户按下发送按钮
     public void Send(View view) {
-        ((TextView)findViewById(R.id.Error)).setText("");
         if (socket == null)
         {
             Session = false;
@@ -291,8 +272,7 @@ public class MainActivity extends AppCompatActivity {
         String UserMessage = UserMessageText.getText().toString();
         if (!Session)
         {
-            TextView ErrorOutput = findViewById(R.id.Error);
-            ErrorOutput.setText(R.string.Error6);
+            ErrorOutputToUserScreen(R.string.Error6);
         }
         else
         {
@@ -302,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             final String UserMessageFinal = UserMessage;
-            @SuppressLint("SetTextI18n") Runnable NetworkThreadRunnable = ()->{
+            Runnable NetworkThreadRunnable = ()->{
                 BufferedWriter writer = null;
                 try {
                     writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
@@ -314,13 +294,13 @@ public class MainActivity extends AppCompatActivity {
                 {
                     TextView SocketOutput = findViewById(R.id.ChatLog);
                     runOnUiThread(()->{
-                        SocketOutput.setText(SocketOutput.getText() + "JavaIM是根据GNU General Public License v3.0开源的自由程序（开源软件）\r\n");
-                        SocketOutput.setText(SocketOutput.getText() + "主仓库位于：https://github.com/QiLechan/JavaIM\r\n");
-                        SocketOutput.setText(SocketOutput.getText() + "主要开发者名单：\r\n");
-                        SocketOutput.setText(SocketOutput.getText() + "QiLechan（柒楽）\r\n");
-                        SocketOutput.setText(SocketOutput.getText() + "AlexLiuDev233 （阿白）\r\n");
-                        SocketOutput.setText(SocketOutput.getText() + "仓库启用了不允许协作者直接推送到主分支，需审核后再提交\r\n");
-                        SocketOutput.setText(SocketOutput.getText() + "因此，如果想要体验最新功能，请查看fork仓库，但不保证稳定性\r\n");
+                        SocketOutput.setText(String.format("%sJavaIM是根据GNU General Public License v3.0开源的自由程序（开源软件）\n",SocketOutput.getText()));
+                        SocketOutput.setText(String.format("%s主仓库位于：https://github.com/QiLechan/JavaIM\n",SocketOutput.getText()));
+                        SocketOutput.setText(String.format("%s主要开发者名单：\n",SocketOutput.getText()));
+                        SocketOutput.setText(String.format("%sQiLechan（柒楽）\n",SocketOutput.getText()));
+                        SocketOutput.setText(String.format("%sAlexLiuDev233 （阿白）\n",SocketOutput.getText()));
+                        SocketOutput.setText(String.format("%s仓库启用了不允许协作者直接推送到主分支，需审核后再提交\n",SocketOutput.getText()));
+                        SocketOutput.setText(String.format("%s因此，如果想要体验最新功能，请查看fork仓库，但不保证稳定性",SocketOutput.getText()));
                     });
                     clientcommand = true;
                 }
@@ -361,7 +341,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     public void Disconnect(View view) {
-        ((TextView)findViewById(R.id.Error)).setText("");
         if (socket == null)
         {
             Session = false;
@@ -400,6 +379,7 @@ public class MainActivity extends AppCompatActivity {
             Thread NetworKThread = new Thread(NetworkThread);
             NetworKThread.start();
             NetworKThread.setName("Network Thread");
+            ClearScreen(view);
         }
     }
     public void ChangeToSettingActivity(View view) {
@@ -427,7 +407,8 @@ public class MainActivity extends AppCompatActivity {
         //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         //启动Activity
-        startActivity(intent);
+
+        intentActivityResultLauncher.launch(intent);
     }
 
 }

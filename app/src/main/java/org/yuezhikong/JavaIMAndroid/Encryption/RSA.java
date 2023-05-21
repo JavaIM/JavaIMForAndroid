@@ -3,6 +3,7 @@ package org.yuezhikong.JavaIMAndroid.Encryption;
 import android.util.Base64;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -25,7 +26,9 @@ import cn.hutool.crypto.asymmetric.KeyType;
             while ((mimeTypeLine = br.readLine()) != null) {
                 sb.append(mimeTypeLine).append("\n");
             }
-            return  sb;
+            br.close();
+            isr.close();
+            return sb;
         }
         public static KeyData loadPublicKeyFromFile(String filePath)
         {
