@@ -84,6 +84,11 @@ public class SettingActivity extends Activity {
                 return;
             }
             File file = new File(getFilesDir().getPath()+"/"+SelectedFileName);
+            if (MainActivity.UsedKey != null && file.getName().equals(MainActivity.UsedKey.getName()) && MainActivity.isSession())
+            {
+                Toast.makeText(File_Control_Activity.this,"此文件正在使用中",Toast.LENGTH_LONG).show();
+                return;
+            }
             if (FileControlMode.equals(getResources().getString(R.string.RenameText)))
             {
                 for (String Filename : fileList())
