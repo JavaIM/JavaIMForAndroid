@@ -49,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
     private cn.hutool.crypto.symmetric.AES AES;
     private KeyData RSAKey;
     private static boolean Session = false;
-
     /**
      * 获取会话状态
      * <p>就是是否已经连接服务器</p>
@@ -83,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
             SocketDisplay.setText("");
         });
     }
-    private ActivityResultLauncher<Intent> intentActivityResultLauncher;
+    private ActivityResultLauncher<Intent> SettingActivityResultLauncher;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
             UsedKey = new File(getFilesDir().getPath()+"/"+(fileList()[0]));
             DisplayUsedKeyTextView.setText(String.format("%s%s%s",getResources().getString(R.string.UsedKeyPrefix),UsedKey.getName(),getResources().getString(R.string.UsedKeySuffix)));
         }
-        intentActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        SettingActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (UsedKey == null)
             {
                 DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
@@ -413,8 +412,7 @@ public class MainActivity extends AppCompatActivity {
         //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         //启动Activity
-
-        intentActivityResultLauncher.launch(intent);
+        SettingActivityResultLauncher.launch(intent);
     }
 
 }
