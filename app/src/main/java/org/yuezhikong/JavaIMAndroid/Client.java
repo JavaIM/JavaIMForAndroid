@@ -1,5 +1,7 @@
 package org.yuezhikong.JavaIMAndroid;
 
+import android.widget.Toast;
+
 import com.google.gson.Gson;
 
 import org.yuezhikong.JavaIMAndroid.JavaIM.ClientMain;
@@ -27,6 +29,10 @@ public class Client extends ClientMain {
     }
 
     public void MessageSendToServer(String Message) {
+        if (socket == null)
+        {
+            return;
+        }
         new Thread() {
             @Override
             public void run() {

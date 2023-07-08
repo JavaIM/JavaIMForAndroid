@@ -49,6 +49,10 @@ import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 public class ClientMain extends GeneralMethod {
     private KeyData keyData;
     private static ClientMain Instance;
+    public final Object lock = new Object();
+    public String UserName;
+    public String Password;
+    public boolean RequestUserNameAndPassword;
 
     public static ClientMain getClient() {
         return Instance;
@@ -99,11 +103,23 @@ public class ClientMain extends GeneralMethod {
         writer.flush();
     }
     private boolean UseUserNameAndPasswordLogin(@NotNull Socket client,@NotNull AES aes,@NotNull Logger logger) throws IOException {
-        Scanner scanner = new Scanner(System.in);
-        logger.info("请输入用户名：");
-        String UserName = scanner.nextLine();
-        logger.info("请输入密码：");
-        String Password = scanner.nextLine();
+        logger.info("请输入用户名");
+        this.UserName = "";
+        this.Password = "";
+        RequestUserNameAndPassword = true;
+        synchronized (lock)
+        {
+            try {
+                lock.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        String UserName = this.UserName;
+        String Password = this.Password;
+        RequestUserNameAndPassword = false;
+        this.UserName = "";
+        this.Password = "";
 
         Gson gson = new Gson();
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(client.getOutputStream(),StandardCharsets.UTF_8));
@@ -181,7 +197,7 @@ public class ClientMain extends GeneralMethod {
             writer.newLine();
             writer.flush();
             //加密处理
-            final String ServerPublicKey = FileUtils.readTxt(new File("ServerPublicKey.txt")).toString();
+            final String ServerPublicKey = FileUtils.readTxt(MainActivity.UsedKey).toString();
             RequestRSA(ServerPublicKey,client,logger);
             //AES制造开始
             String json;

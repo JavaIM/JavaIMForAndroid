@@ -182,6 +182,21 @@ public class MainActivity extends AppCompatActivity {
         else
         {
             UserMessageText.setText("");
+            if (client.RequestUserNameAndPassword)
+            {
+                if ("".equals(client.UserName))
+                {
+                    client.UserName = UserMessage;
+                    OutputToChatLogNoRunOnUIThread("请输入密码：");
+                    return;
+                }
+                client.Password = UserMessage;
+                client.RequestUserNameAndPassword = false;
+                synchronized (client.lock) {
+                    client.lock.notifyAll();
+                }
+                return;
+            }
             client.MessageSendToServer(UserMessage);
         }
     }
