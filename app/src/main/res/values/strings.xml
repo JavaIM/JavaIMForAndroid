@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">JavaIM</string>
-    <string name="SettingActivityLabel">JavaIMSetting</string>
+    <string name="SettingActivityLabel">设置</string>
     <string name="IPAddress">请输入您连接的服务器IP地址：</string>
     <string name="Port">请输入服务器的端口：</string>
     <string name="ConnectButton">连接</string>
@@ -20,5 +20,6 @@
     <string name="ManageImportedServerPublicKey">管理已导入的服务端公钥</string>
     <string name="UsedKeyPrefix">正在使用的公钥：</string>
     <string name="UsedKeySuffix">，可在设置中修改</string>
-    <string name="FileControlActivityLabel">JavaIMFileControl</string>
+    <string name="FileControlActivityLabel">文件管理器</string>
+    <string name="PermissionAlertActivityLabel">申请权限</string>
 </resources>

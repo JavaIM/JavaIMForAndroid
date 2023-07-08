@@ -14,11 +14,30 @@
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  * You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-package org.yuezhikong.JavaIMAndroid.Encryption;
+package org.yuezhikong.JavaIMAndroid.JavaIM;
 
-public class KeyData {
-    public java.security.PublicKey publicKey;
-    public java.security.PrivateKey privateKey;
-    public String PublicKey;
-    public String PrivateKey;
+import org.jetbrains.annotations.NotNull;
+import org.yuezhikong.JavaIMAndroid.Protocol.NormalProtocol;
+
+public interface GeneralMethodInterface {
+    /**
+     * 创建AES密钥
+     * @param source 密钥生成源
+     * @return 密钥（经过base64）
+     */
+    String GenerateKey(@NotNull String source);
+
+    /**
+     * 简易的json转换为NormalProtocol的工具
+     * @param json json
+     * @return NormalProtocol
+     */
+    NormalProtocol protocolRequest(String json);
+
+    /**
+     * 将信息中的unicode转换为string
+     * @param unicode 含有Unicode字符的文本
+     * @return 普通String
+     */
+    @NotNull String unicodeToString(@NotNull String unicode);
 }

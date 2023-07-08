@@ -22,7 +22,7 @@ import com.google.gson.Gson;
 
 import org.yuezhikong.JavaIMAndroid.Encryption.KeyData;
 import org.yuezhikong.JavaIMAndroid.Encryption.RSA;
-import org.yuezhikong.JavaIMAndroid.Protocol.ProtocolData;
+import org.yuezhikong.JavaIMAndroid.Protocol.NormalProtocol;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -46,10 +46,10 @@ import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 
 public class MainActivity extends AppCompatActivity {
+    static boolean Session = false;
+    private Client client;
     public static File UsedKey;
-    private cn.hutool.crypto.symmetric.AES AES;
-    private KeyData RSAKey;
-    private static boolean Session = false;
+
     /**
      * 获取会话状态
      * <p>就是是否已经连接服务器</p>
@@ -59,11 +59,14 @@ public class MainActivity extends AppCompatActivity {
         return Session;
     }
 
-    private Socket socket;
     public static String ServerAddr = "";
     public static int ServerPort = 0;
+    private static MainActivity Instance;
 
-    private void OutputToChatLog(String msg)
+    public static MainActivity getInstance() {
+        return Instance;
+    }
+    public void OutputToChatLog(String msg)
     {
         runOnUiThread(()-> OutputToChatLogNoRunOnUIThread(msg));
     }
@@ -87,7 +90,23 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Instance = this;
         setContentView(R.layout.activity_main);
+        SettingActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
+            if (UsedKey == null)
+            {
+                DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
+            }
+            else {
+                DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
+            }
+        });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         TextView ChatLog = findViewById(R.id.ChatLog);
         ChatLog.setMovementMethod(ScrollingMovementMethod.getInstance());
         Button button = findViewById(R.id.button4);
@@ -104,22 +123,12 @@ public class MainActivity extends AppCompatActivity {
         if (fileList().length == 0) {
             UsedKey = null;
             DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
+        } else {
+            UsedKey = new File(getFilesDir().getPath() + "/" + (fileList()[0]));
+            DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
         }
-        else
-        {
-            UsedKey = new File(getFilesDir().getPath()+"/"+(fileList()[0]));
-            DisplayUsedKeyTextView.setText(String.format("%s%s%s",getResources().getString(R.string.UsedKeyPrefix),UsedKey.getName(),getResources().getString(R.string.UsedKeySuffix)));
-        }
-        SettingActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            if (UsedKey == null)
-            {
-                DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
-            }
-            else {
-                DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
-            }
-        });
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -130,15 +139,6 @@ public class MainActivity extends AppCompatActivity {
         {
             ErrorOutputToUserScreen(R.string.Error5);
             return;
-        }
-        if (socket == null)
-        {
-            Session = false;
-        }
-        else {
-            if (socket.isClosed()) {
-                Session = false;
-            }
         }
         String IPAddress = ServerAddr;
         if (IPAddress.isEmpty())
@@ -159,127 +159,20 @@ public class MainActivity extends AppCompatActivity {
         {
             ((TextView)findViewById(R.id.ChatLog)).setText("");
             Session = true;
-            Runnable NetworkThread = () ->
+            new Thread()
             {
-                try {
-                    //获取文件
-                    File ServerPublicKeyFile = UsedKey;
-                    if (!ServerPublicKeyFile.exists()) {
-                        ErrorOutputToUserScreen(R.string.Error5);
-                        Session = false;
-                        return;
-                    }
-                    RSAKey = RSA.generateKeyToReturn();
-                    // 创建Socket对象 & 指定服务端的IP 及 端口号
-                    socket = new Socket(IPAddress, port);
-                    Runnable recvmessage = () ->
-                    {
-                        while (true)
-                        {
-                            BufferedReader reader;//获取输入流
-                            try {
-                                reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                                String msg = reader.readLine();
-                                if (msg == null)
-                                {
-                                    ErrorOutputToUserScreen(R.string.Disconnected);
-                                    break;
-                                }
-                                msg = AES.decryptStr(msg);
-                                msg = java.net.URLDecoder.decode(msg, "UTF-8");
-                                // 将信息从Protocol Json中取出
-                                Gson gson = new Gson();
-                                ProtocolData protocolData = gson.fromJson(msg,ProtocolData.class);
-                                if (protocolData.getMessageHead().getVersion() != ProtocolVersion)
-                                {
-                                    OutputToChatLog(String.format("目标服务器协议版本与您客户端不符，目标服务器协议版本为：%s，此客户端协议版本为：%s",protocolData.getMessageHead().getVersion(),ProtocolVersion));
-                                    socket.close();
-                                    break;
-                                }
-                                // type目前只实现了chat,FileTransfer延后
-                                if (protocolData.getMessageHead().getType().equals("Chat"))
-                                {
-                                    msg = protocolData.getMessageBody().getMessage();
-                                    String finalMsg = msg;
-                                    OutputToChatLog(finalMsg);
-                                }
-                                else if (protocolData.getMessageHead().getType().equals("FileTransfer"))
-                                {
-                                    OutputToChatLog("有人想要为您发送一个文件，但是此客户端暂不支持FileTransfer协议");
-                                }
-                                else
-                                {
-                                    OutputToChatLog("服务端发来无法识别的非法数据包");
-                                }
-                            }
-                            catch (IOException e)
-                            {
-                                if (!"Connection reset by peer".equals(e.getMessage()) && !"Connection reset".equals(e.getMessage()) && !"Socket is closed".equals(e.getMessage()))  {
-                                    e.printStackTrace();
-                                }
-                                else
-                                {
-                                    ErrorOutputToUserScreen(R.string.Disconnected);
-                                    break;
-                                }
-                            }
-                        }
-                    };
-                    runOnUiThread(()->{
-                        OutputToChatLogNoRunOnUIThread(String.format("连接到主机%s，端口号：%s",IPAddress,port));
-                        OutputToChatLogNoRunOnUIThread(socket.getRemoteSocketAddress().toString());
-                    });
-                    String ServerPublicKey = Objects.requireNonNull(RSA.loadPublicKeyFromFile(ServerPublicKeyFile.getAbsolutePath())).PublicKey;
-                    OutputStream outToServer = socket.getOutputStream();
-                    DataOutputStream out = new DataOutputStream(outToServer);
-                    InputStream inFromServer = socket.getInputStream();
-                    DataInputStream in = new DataInputStream(inFromServer);
-
-                    String ClientRSAKey = java.net.URLEncoder.encode(Base64.encodeToString(RSAKey.publicKey.getEncoded(),Base64.NO_WRAP), "UTF-8");//通讯握手开始
-                    out.writeUTF(ClientRSAKey);
-                    String DecryptStr = RSA.decrypt(in.readUTF(),RSAKey.privateKey);
-                    String finalDecryptStr1 = DecryptStr;
-                    OutputToChatLog(String.format("服务器响应：%s",finalDecryptStr1));
-                    out.writeUTF(RSA.encrypt("Hello,Server! This Message By Client RSA System",ServerPublicKey));
-                    String RandomByClient = UUID.randomUUID().toString();
-                    out.writeUTF(RSA.encrypt(java.net.URLEncoder.encode(RandomByClient, "UTF-8"),ServerPublicKey));
-                    String RandomByServer = java.net.URLDecoder.decode(RSA.decrypt(in.readUTF(),RSAKey.privateKey),"UTF-8");
-                    byte[] KeyByte = new byte[32];
-                    byte[] SrcByte = Base64.encodeToString((RandomByClient+RandomByServer).getBytes(StandardCharsets.UTF_8),Base64.NO_WRAP).getBytes(StandardCharsets.UTF_8);
-                    System.arraycopy(SrcByte,0,KeyByte,0,31);
-                    SecretKey key = SecureUtil.generateKey(SymmetricAlgorithm.AES.getValue(),KeyByte);
-                    AES = cn.hutool.crypto.SecureUtil.aes(key.getEncoded());
-                    DecryptStr = AES.decryptStr(in.readUTF());
-                    String finalDecryptStr = DecryptStr;
-                    OutputToChatLog(String.format("服务器响应：%s",finalDecryptStr));
-                    out.writeUTF(Base64.encodeToString(AES.encrypt("Hello,Server! This Message By Client AES System"),Base64.NO_WRAP));
-                    out.writeUTF("Hello from " + socket.getLocalSocketAddress());
-                    String Message = in.readUTF();
-                    OutputToChatLog(String.format("服务器响应：%s",Message));//握手结束
-                    Thread thread = new Thread(recvmessage);
-                    thread.start();
-                    thread.setName("RecvMessage Thread");
-                } catch (IOException e) {
-                    ErrorOutputToUserScreen(R.string.Error3);
+                @Override
+                public void run() {
+                    this.setName("Network Thread");
+                    client = new Client();
+                    client.start(ServerAddr,ServerPort);
                 }
-            };
-            Thread NetworKThread = new Thread(NetworkThread);
-            NetworKThread.start();
-            NetworKThread.setName("Network Thread");
+            }.start();
         }
     }
 
     //用户按下发送按钮
     public void Send(View view) {
-        if (socket == null)
-        {
-            Session = false;
-        }
-        else {
-            if (socket.isClosed()) {
-                Session = false;
-            }
-        }
         EditText UserMessageText = findViewById (R.id.UserSendMessage);
         String UserMessage = UserMessageText.getText().toString();
         if (!Session)
@@ -288,107 +181,15 @@ public class MainActivity extends AppCompatActivity {
         }
         else
         {
-            if (socket == null)
-            {
-                Session = false;
-                return;
-            }
-            final String UserMessageFinal = UserMessage;
-            Runnable NetworkThreadRunnable = ()->{
-                BufferedWriter writer = null;
-                try {
-                    writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                boolean clientcommand = false;
-                if (".about".equals(UserMessageFinal))
-                {
-                    runOnUiThread(()->{
-                        OutputToChatLogNoRunOnUIThread("JavaIM是根据GNU General Public License v3.0开源的自由程序（开源软件）");
-                        OutputToChatLogNoRunOnUIThread("主仓库位于：https://github.com/JavaIM/JavaIM");
-                        OutputToChatLogNoRunOnUIThread("主要开发者名单：");
-                        OutputToChatLogNoRunOnUIThread("QiLechan（柒楽）");
-                        OutputToChatLogNoRunOnUIThread("AlexLiuDev233 （阿白）");
-                    });
-                    clientcommand = true;
-                }
-                if (!clientcommand) {
-                    // 应当在这里加入json处理
-                    String input = UserMessageFinal;
-                    Gson gson = new Gson();
-                    ProtocolData protocolData = new ProtocolData();
-                    ProtocolData.MessageHead MessageHead = new ProtocolData.MessageHead();
-                    MessageHead.setVersion(ProtocolVersion);
-                    MessageHead.setType("Chat");
-                    protocolData.setMessageHead(MessageHead);
-                    ProtocolData.MessageBody MessageBody = new ProtocolData.MessageBody();
-                    MessageBody.setFileLong(0);
-                    MessageBody.setMessage(input);
-                    protocolData.setMessageBody(MessageBody);
-                    input = gson.toJson(protocolData);
-                    // 加密信息
-                    try {
-                        input = java.net.URLEncoder.encode(input, "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
-                    input = Base64.encodeToString(AES.encrypt(input),Base64.NO_WRAP);
-                    // 发送消息给服务器
-                    try {
-                        Objects.requireNonNull(writer).write(input);
-                        writer.newLine();
-                        writer.flush();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            };
-            Thread NetWorkThread = new Thread(NetworkThreadRunnable);
-            NetWorkThread.start();
-            NetWorkThread.setName("Network Thread");
             UserMessageText.setText("");
+            client.MessageSendToServer(UserMessage);
         }
     }
     public void Disconnect(View view) {
-        if (socket == null)
-        {
-            Session = false;
-        }
-        else {
-            if (socket.isClosed()) {
-                Session = false;
-            }
-        }
         if (Session)
         {
             Session = false;
-            Runnable NetworkThread = () ->
-            {
-                try {
-                    BufferedWriter writer = null;
-                    try {
-                        writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    if (writer == null)
-                    {
-                        socket.close();
-                        return;
-                    }
-                    writer.write("quit\n");
-                    writer.newLine();
-                    writer.flush();
-                    writer.close();
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            };
-            Thread NetworKThread = new Thread(NetworkThread);
-            NetworKThread.start();
-            NetworKThread.setName("Network Thread");
+            client.TerminateClient();
             ClearScreen(view);
         }
     }
