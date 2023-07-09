@@ -1,6 +1,10 @@
 package org.yuezhikong.JavaIMAndroid.utils;
 
+import android.content.Context;
+
 import androidx.annotation.NonNull;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -11,6 +15,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class FileUtils {
     @NonNull
@@ -53,5 +60,45 @@ public class FileUtils {
         writer.write(Text);
         writer.newLine();
         writer.close();
+    }
+
+    @NonNull
+    public static String[] fileListOfServerPublicKey(@NotNull Context context)
+    {
+        File ServerPublicKeyDirectory = new File (context.getFilesDir().getPath()+"/ServerPublicKey/");
+        if (!(ServerPublicKeyDirectory.exists()))
+        {
+            if (!(ServerPublicKeyDirectory.mkdir()))
+            {
+                return new String[0];
+            }
+            fileListOfServerPublicKey(context);
+        }
+        if (ServerPublicKeyDirectory.isDirectory())
+        {
+            List<String> returnFileList = new ArrayList<>();
+            String[] FileList = ServerPublicKeyDirectory.list();
+            if (FileList == null)
+            {
+                return new String[0];
+            }
+            for (String file : FileList)
+            {
+                File RequestFile = new File(context.getFilesDir().getPath()+"/ServerPublicKey/"+file);
+                if (RequestFile.exists() && RequestFile.isFile())
+                {
+                    returnFileList.add(file);
+                }
+            }
+            return returnFileList.toArray(new String[0]);
+        }
+        else
+        {
+            if (!(ServerPublicKeyDirectory.delete()) || !(ServerPublicKeyDirectory.mkdir()))
+            {
+                return new String[0];
+            }
+            return fileListOfServerPublicKey(context);
+        }
     }
 }

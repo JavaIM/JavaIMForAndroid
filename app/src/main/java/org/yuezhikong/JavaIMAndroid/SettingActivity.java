@@ -21,9 +21,12 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -86,7 +89,7 @@ public class SettingActivity extends AppCompatActivity {
                 Toast.makeText(File_Control_Activity.this,"文件名不能为空",Toast.LENGTH_LONG).show();
                 return;
             }
-            File file = new File(getFilesDir().getPath()+"/"+SelectedFileName);
+            File file = new File(getFilesDir().getPath()+"/ServerPublicKey/"+SelectedFileName);
             if (MainActivity.UsedKey != null && file.getName().equals(MainActivity.UsedKey.getName()) && MainActivity.isSession())
             {
                 Toast.makeText(File_Control_Activity.this,"此文件正在使用中",Toast.LENGTH_LONG).show();
@@ -94,21 +97,30 @@ public class SettingActivity extends AppCompatActivity {
             }
             if (getResources().getString(R.string.RenameText).equals(FileControlMode))
             {
-                for (String Filename : fileList())
+                if ("".equals(((EditText)findViewById(R.id.RenameFileText)).getText().toString()))
                 {
-                    if (new File(getFilesDir().getPath()+"/"+((EditText)findViewById(R.id.RenameFileText)).getText().toString()).getName().equals(new File(getFilesDir().getPath()+"/"+Filename).getName()))
+                    Toast.makeText(File_Control_Activity.this,"文件名不能为空",Toast.LENGTH_LONG).show();
+                    return;
+                }
+                for (String Filename : FileUtils.fileListOfServerPublicKey(this))
+                {
+                    //判断新名称是否与现有名称重复
+                    if (new File(getFilesDir().getPath()+"/ServerPublicKey/"+((EditText)findViewById(R.id.RenameFileText)).getText().toString())
+                            .getName().equals(new File(getFilesDir().getPath()+"/ServerPublicKey/"+Filename).getName()))
                     {
                         Toast.makeText(File_Control_Activity.this,"文件名重复",Toast.LENGTH_LONG).show();
                         return;
                     }
                 }
-                if (!file.renameTo(new File(getFilesDir().getPath()+"/"+((EditText)findViewById(R.id.RenameFileText)).getText().toString())))
+                if (!file.renameTo(new File(getFilesDir().getPath()+"/ServerPublicKey/"
+                        +((EditText)findViewById(R.id.RenameFileText)).getText().toString())))
                 {
                     Toast.makeText(File_Control_Activity.this,"文件重命名失败",Toast.LENGTH_LONG).show();
                 }
                 else if (file.getPath().equals(MainActivity.UsedKey.getPath()))
                 {
-                    MainActivity.UsedKey = new File(getFilesDir().getPath()+"/"+((EditText)findViewById(R.id.RenameFileText)).getText().toString());
+                    MainActivity.UsedKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"
+                            +((EditText)findViewById(R.id.RenameFileText)).getText().toString());
                 }
             }
             else if (getResources().getString(R.string.DeleteFileText).equals(FileControlMode))
@@ -117,11 +129,14 @@ public class SettingActivity extends AppCompatActivity {
                 {
                     Toast.makeText(File_Control_Activity.this,"文件删除失败",Toast.LENGTH_LONG).show();
                 }
+                //如果删除成功且删除的公钥是正在使用的公钥
                 else if (file.getPath().equals(MainActivity.UsedKey.getPath()))
                 {
-                    if (fileList().length > 0)
+                    //剩余公钥数量大于0
+                    if (FileUtils.fileListOfServerPublicKey(this).length > 0)
                     {
-                        MainActivity.UsedKey = new File(getFilesDir().getPath()+"/"+(fileList())[0]);
+                        //随机一个新公钥
+                        MainActivity.UsedKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"+(FileUtils.fileListOfServerPublicKey(this))[0]);
                     }
                     else
                     {
@@ -178,21 +193,33 @@ public class SettingActivity extends AppCompatActivity {
                 if (DisplayName == null) {
                     DisplayName = "RandomKeyName" + UUID.randomUUID() + UUID.randomUUID() + ".txt";
                 }
-                Uri finalFileURI = FileURI;
-                String finalDisplayName = DisplayName;
+                final Uri finalFileURI = FileURI;
+                final String finalDisplayName = DisplayName;
                 Toast.makeText(SettingActivity.this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
+                File ServerPublicKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"+DisplayName);
+                try {
+                    if (!(ServerPublicKey.createNewFile()))
+                    {
+                        Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
+                    return;
+                }
                 new Thread() {
                     @Override
                     public void run() {
                         this.setName("I/O Thread");
-                        try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(openFileOutput(finalDisplayName, MODE_PRIVATE)))) {
+                        try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerPublicKey)))) {
                             String line;
                             while ((line = FileInput.readLine()) != null) {
                                 FileOutput.write(line);
                                 FileOutput.newLine();//line是纯文本，没有回车，需要补上
                             }
                             //写入完毕，将此文件设为使用
-                            MainActivity.UsedKey = new File(getFilesDir().getPath() + "/" + finalDisplayName);
+                            MainActivity.UsedKey = new File(getFilesDir().getPath() + "/ServerPublicKey/" + finalDisplayName);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -257,7 +284,7 @@ public class SettingActivity extends AppCompatActivity {
         intent.setClass(SettingActivity.this, File_Control_Activity.class);
         //开始向新Activity发送文件列表，以便填充到编辑框
         Bundle bundle = new Bundle();
-        bundle.putStringArray("FileNames",fileList());
+        bundle.putStringArray("FileNames",FileUtils.fileListOfServerPublicKey(this));
         //从Bundle put到intent
         intent.putExtras(bundle);
         //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶

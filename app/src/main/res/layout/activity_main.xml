@@ -112,8 +112,8 @@
 
             <TextView
                 android:id="@+id/ChatLog"
-                android:layout_width="409dp"
-                android:layout_height="133dp" />
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
         </LinearLayout>
     </ScrollView>
 
@@ -126,14 +126,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/debugbutton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="262dp"
-        android:layout_marginTop="462dp"
-        android:text="Debug"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

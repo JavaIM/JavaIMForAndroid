@@ -162,7 +162,8 @@ public class ClientMain extends GeneralMethod {
         Instance = this;
         Logger logger = LoggerInit();
         logger.info("正在连接主机：" + ServerAddress + " ，端口号：" + ServerPort);
-        try (Socket client = new Socket(ServerAddress, ServerPort)) {
+        try {
+            Socket client = new Socket(ServerAddress, ServerPort);
             logger.info("远程主机地址：" + client.getRemoteSocketAddress());
             //开始握手
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(client.getOutputStream(),StandardCharsets.UTF_8));
@@ -356,7 +357,8 @@ public class ClientMain extends GeneralMethod {
     }
     protected void SendMessage(Logger logger, Socket socket,AES aes) {
         Scanner scanner = new Scanner(System.in);
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))) {
+        try {
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             while (true) {
                 String UserInput = scanner.nextLine();
                 if (".help".equals(UserInput)) {
@@ -403,7 +405,8 @@ public class ClientMain extends GeneralMethod {
             @Override
             public void run() {
                 this.setName("RecvMessage Thread");
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8))) {
+                try {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
                     String ChatMsg;
                     while (true) {
                         do {

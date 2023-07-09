@@ -1,11 +1,8 @@
 package org.yuezhikong.JavaIMAndroid;
 
-import static org.yuezhikong.JavaIMAndroid.ConfigFile.ProtocolVersion;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Base64;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
@@ -18,32 +15,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.gson.Gson;
-
-import org.yuezhikong.JavaIMAndroid.Encryption.KeyData;
-import org.yuezhikong.JavaIMAndroid.Encryption.RSA;
-import org.yuezhikong.JavaIMAndroid.Protocol.NormalProtocol;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
-import java.util.UUID;
-
-import javax.crypto.SecretKey;
-
-import cn.hutool.crypto.SecureUtil;
-import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 
 public class MainActivity extends AppCompatActivity {
     static boolean Session = false;
@@ -73,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private void OutputToChatLogNoRunOnUIThread(String msg)
     {
         ((TextView)findViewById(R.id.ChatLog)).setText(String.format("%s\r\n%s",((TextView)findViewById(R.id.ChatLog)).getText().toString(),msg));
-        ((ScrollView)findViewById(R.id.ScrollView)).fullScroll(ScrollView.FOCUS_DOWN);
+        ((ScrollView)findViewById(R.id.ScrollView)).post(() -> ((ScrollView)findViewById(R.id.ScrollView)).fullScroll(ScrollView.FOCUS_DOWN));
     }
     private void ErrorOutputToUserScreen(int id)
     {
@@ -181,7 +153,6 @@ public class MainActivity extends AppCompatActivity {
         }
         else
         {
-            UserMessageText.setText("");
             if (client.RequestUserNameAndPassword)
             {
                 if ("".equals(client.UserName))
@@ -198,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             client.MessageSendToServer(UserMessage);
+            UserMessageText.setText("");
         }
     }
     public void Disconnect(View view) {
