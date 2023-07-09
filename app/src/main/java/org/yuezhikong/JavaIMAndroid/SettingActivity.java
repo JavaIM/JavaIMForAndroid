@@ -194,8 +194,15 @@ public class SettingActivity extends AppCompatActivity {
                     DisplayName = "RandomKeyName" + UUID.randomUUID() + UUID.randomUUID() + ".txt";
                 }
                 final Uri finalFileURI = FileURI;
-                final String finalDisplayName = DisplayName;
                 Toast.makeText(SettingActivity.this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
+                if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").exists()))
+                {
+                    if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").mkdir()))
+                    {
+                        Toast.makeText(this,"无法成功创建文件夹",Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
                 File ServerPublicKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"+DisplayName);
                 try {
                     if (!(ServerPublicKey.createNewFile()))
@@ -217,9 +224,10 @@ public class SettingActivity extends AppCompatActivity {
                             while ((line = FileInput.readLine()) != null) {
                                 FileOutput.write(line);
                                 FileOutput.newLine();//line是纯文本，没有回车，需要补上
+                                FileOutput.flush();
                             }
                             //写入完毕，将此文件设为使用
-                            MainActivity.UsedKey = new File(getFilesDir().getPath() + "/ServerPublicKey/" + finalDisplayName);
+                            MainActivity.UsedKey = ServerPublicKey;
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -279,6 +287,16 @@ public class SettingActivity extends AppCompatActivity {
 
     public void OnManagePublicKey(View v)
     {
+        //检测/ServerPublicKey/是否存在
+        if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").exists()))
+        {
+            //不存在时创建文件
+            if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").mkdir()))
+            {
+                Toast.makeText(this,"文件夹创建失败",Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
         //开始创建新Activity过程
         Intent intent=new Intent();
         intent.setClass(SettingActivity.this, File_Control_Activity.class);

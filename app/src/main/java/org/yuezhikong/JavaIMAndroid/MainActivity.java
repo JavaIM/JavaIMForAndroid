@@ -15,6 +15,8 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
+
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
@@ -92,11 +94,11 @@ public class MainActivity extends AppCompatActivity {
         button = findViewById(R.id.button6);
         button.setOnClickListener(this::ClearScreen);
         TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
-        if (fileList().length == 0) {
+        if (FileUtils.fileListOfServerPublicKey(this).length == 0) {
             UsedKey = null;
             DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
         } else {
-            UsedKey = new File(getFilesDir().getPath() + "/" + (fileList()[0]));
+            UsedKey = new File(getFilesDir().getPath() + "/ServerPublicKey/" + (FileUtils.fileListOfServerPublicKey(this)[0]));
             DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
         }
     }

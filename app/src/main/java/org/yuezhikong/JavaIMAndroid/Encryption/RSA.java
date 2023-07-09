@@ -18,6 +18,8 @@ package org.yuezhikong.JavaIMAndroid.Encryption;
 
 import android.util.Base64;
 
+import androidx.annotation.NonNull;
+
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 
 import java.io.IOException;
@@ -42,6 +44,7 @@ import cn.hutool.crypto.asymmetric.KeyType;
                 return null;
             }
         }
+        @NonNull
         public static KeyData generateKeyToReturn()
         {
             KeyData keyData = new KeyData();
