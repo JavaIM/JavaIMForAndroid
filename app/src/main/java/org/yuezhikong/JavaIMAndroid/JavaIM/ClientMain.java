@@ -21,6 +21,7 @@ import android.util.Base64;
 import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
+import org.yuezhikong.JavaIMAndroid.Client;
 import org.yuezhikong.JavaIMAndroid.ConfigFile;
 import org.yuezhikong.JavaIMAndroid.Encryption.KeyData;
 import org.yuezhikong.JavaIMAndroid.Encryption.RSA;
@@ -38,6 +39,8 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -82,6 +85,21 @@ public class ClientMain extends GeneralMethod {
         do {
             json = reader.readLine();
         } while (json == null);
+        if ("Decryption Error".equals(json))
+        {
+            logger.info("你的服务端公钥疑似不正确");
+            logger.info("服务端返回：Decryption Error");
+            logger.info("服务端无法解密");
+            logger.info("客户端正在退出");
+            if (this instanceof Client)
+            {
+                ((Client) this).TerminateClient();
+            }
+            else
+            {
+                System.exit(0);
+            }
+        }
         json = unicodeToString(json);
         protocol = getClient().protocolRequest(json);
         if (protocol.getMessageHead().getVersion() != ConfigFile.ProtocolVersion || !("Test".equals(protocol.getMessageHead().getType())))
@@ -161,6 +179,7 @@ public class ClientMain extends GeneralMethod {
     {
         Instance = this;
         Logger logger = LoggerInit();
+        Timer timer = new Timer(true);
         logger.info("正在连接主机：" + ServerAddress + " ，端口号：" + ServerPort);
         try {
             Socket client = new Socket(ServerAddress, ServerPort);
@@ -177,6 +196,20 @@ public class ClientMain extends GeneralMethod {
             writer.write("你好，服务端");
             writer.newLine();
             writer.flush();
+            TimerTask task = new TimerTask()
+            {
+                @Override
+                public void run() {
+                    try {
+                        writer.write("Alive");
+                        writer.newLine();
+                        writer.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            timer.schedule(task,0,ConfigFile.HeartbeatInterval);
             //测试通讯协议
             NormalProtocol protocol = protocolRequest(unicodeToString(reader.readLine()));
             if (protocol.getMessageHead().getVersion() != ConfigFile.ProtocolVersion || !("Test".equals(protocol.getMessageHead().getType())))
@@ -336,6 +369,11 @@ public class ClientMain extends GeneralMethod {
             }
             SendMessage(logger,client,aes);
         } catch (IOException ignored) {
+        }
+        timer.cancel();
+        if (this instanceof Client)
+        {
+            ((Client) this).TerminateClient();
         }
     }
 
