@@ -2,10 +2,8 @@ package org.yuezhikong.JavaIMAndroid;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -15,11 +13,12 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
+
     static boolean Session = false;
     private Client client;
     public static File UsedKey;
@@ -81,26 +80,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        TextView ChatLog = findViewById(R.id.ChatLog);
-        ChatLog.setMovementMethod(ScrollingMovementMethod.getInstance());
-        Button button = findViewById(R.id.button4);
-        button.setOnClickListener(this::ChangeToSettingActivity);
-        button = findViewById(R.id.button8);
-        button.setOnClickListener(this::Send);
-        button = findViewById(R.id.button2);
-        button.setOnClickListener(this::Connect);
-        button = findViewById(R.id.button3);
-        button.setOnClickListener(this::Disconnect);
-        button = findViewById(R.id.button6);
-        button.setOnClickListener(this::ClearScreen);
-        TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
-        if (FileUtils.fileListOfServerPublicKey(this).length == 0) {
-            UsedKey = null;
-            DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
-        } else {
-            UsedKey = new File(getFilesDir().getPath() + "/ServerPublicKey/" + (FileUtils.fileListOfServerPublicKey(this)[0]));
-            DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
-        }
+        FloatingActionButton floatingActionButton = findViewById(R.id.create);
+        floatingActionButton.setOnClickListener(this::ChangeToSettingActivity);
     }
 
     @Override
