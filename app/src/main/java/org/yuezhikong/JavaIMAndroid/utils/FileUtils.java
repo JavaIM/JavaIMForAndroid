@@ -17,7 +17,6 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class FileUtils {
     @NonNull
@@ -50,12 +49,25 @@ public class FileUtils {
         return sb;
     }
     public static void writeTxt(String path,String Text) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path),StandardCharsets.UTF_8));
-        writer.write(Text);
-        writer.newLine();
-        writer.close();
+        writeTxt(new File(path),Text);
+    }
+
+    private static void CreateDirectory(File dir)
+    {
+        if (dir.exists() && dir.isDirectory())
+            return;
+        if (dir.exists() && dir.isFile())
+            dir.delete();
+        dir.mkdirs();
     }
     public static void writeTxt(File file,String Text) throws IOException {
+        if (!(file.exists() && file.isFile()))
+        {
+            file.delete();
+            if (!(file.getParentFile() != null && file.getParentFile().exists()))
+                CreateDirectory(file.getParentFile());
+            file.createNewFile();
+        }
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file),StandardCharsets.UTF_8));
         writer.write(Text);
         writer.newLine();

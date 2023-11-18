@@ -22,12 +22,16 @@ import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;
-import org.yuezhikong.JavaIMAndroid.Protocol.NormalProtocol;
+import org.yuezhikong.utils.Logger;
+import org.yuezhikong.utils.Protocol.NormalProtocol;
+import org.yuezhikong.utils.RSA;
 
 import javax.crypto.SecretKey;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 public class GeneralMethod implements GeneralMethodInterface{
+    @Override
     public String GenerateKey(@NotNull String source)
     {
         try {
@@ -41,6 +45,7 @@ public class GeneralMethod implements GeneralMethodInterface{
             return GenerateKey(source + source);
         }
     }
+    @Override
     public NormalProtocol protocolRequest(String json)
     {
         try
@@ -52,38 +57,46 @@ public class GeneralMethod implements GeneralMethodInterface{
             throw new RuntimeException("Json Request Failed",e);
         }
     }
-    public @NotNull String unicodeToString(@NotNull String unicode) {
-        StringBuilder sb = new StringBuilder();
-        int i = 0;
-        int len = unicode.length();
-        while (i < len) {
-            char c = unicode.charAt(i);
-            if (c == '\\') {
-                if (i < len - 5) {
-                    char c1 = unicode.charAt(i + 1);
-                    char c2 = unicode.charAt(i + 2);
-                    char c3 = unicode.charAt(i + 3);
-                    char c4 = unicode.charAt(i + 4);
-                    if (c1 == 'u' && isHexDigit(c2) && isHexDigit(c3) && isHexDigit(c4)) {
-                        int code = (Character.digit(c2, 16) << 12)
-                                + (Character.digit(c3, 16) << 8)
-                                + (Character.digit(c4, 16) << 4)
-                                + Character.digit(unicode.charAt(i + 5), 16);
-                        sb.append((char) code);
-                        i += 6;
-                        continue;
-                    }
+    @Override
+    public void RSA_KeyAutogenerate(String PublicKeyFile, String PrivateKeyFile, Logger logger)
+    {
+        if (!(new File(PublicKeyFile).exists()))
+        {
+            if (!(new File(PrivateKeyFile).exists()))
+            {
+                try {
+                    RSA.generateKeyToFile(PublicKeyFile, PrivateKeyFile);
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
                 }
             }
-            sb.append(c);
-            i++;
+            else
+            {
+                logger.info("系统检测到您的目录下不存在公钥，但，存在私钥，系统将为您覆盖一个新的rsa key");
+                try {
+                    RSA.generateKeyToFile(PublicKeyFile, PrivateKeyFile);
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
         }
-        return sb.toString();
-    }
-
-    private static boolean isHexDigit(char ch) {
-        return (ch >= '0' && ch <= '9') ||
-                (ch >= 'a' && ch <= 'f') ||
-                (ch >= 'A' && ch <= 'F');
+        else
+        {
+            if (!(new File(PrivateKeyFile).exists()))
+            {
+                logger.info("系统检测到您的目录下存在公钥，但，不存在私钥，系统将为您覆盖一个新的rsa key");
+                try {
+                    RSA.generateKeyToFile(PublicKeyFile, PrivateKeyFile);
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }
