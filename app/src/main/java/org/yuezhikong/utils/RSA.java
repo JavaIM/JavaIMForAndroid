@@ -14,44 +14,42 @@
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  * You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-package org.yuezhikong.JavaIMAndroid.Encryption;
+package org.yuezhikong.utils;
 
 import android.util.Base64;
 
 import androidx.annotation.NonNull;
 
+import org.yuezhikong.JavaIMAndroid.Encryption.KeyData;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.asymmetric.KeyType;
 
     public class RSA {
-        public static KeyData loadPublicKeyFromFile(String filePath)
+        public static void generateKeyToFile(String PublicKeyFile,String PrivateKeyFile)
         {
+            KeyPair pair = SecureUtil.generateKeyPair("RSA");
+            PrivateKey privateKey = pair.getPrivate();
+            PublicKey publicKey = pair.getPublic();
+            byte[] publicKeyEncoded = publicKey.getEncoded();
+            byte[] privateKeyEncoded = privateKey.getEncoded();
+            // 进行Base64编码
+            String publicKeyString = Base64.encodeToString(publicKeyEncoded,Base64.NO_WRAP);
+            String privateKeyString = Base64.encodeToString(privateKeyEncoded,Base64.NO_WRAP);
+            // 保存文件
             try {
-                String keyString = FileUtils.readTxt(filePath).toString();
-                KeyData keyData = new KeyData();
-                keyData.PublicKey = keyString;
-                return keyData;
-            }
-            catch (IOException e)
+                FileUtils.writeTxt(PublicKeyFile, publicKeyString);
+                FileUtils.writeTxt(PrivateKeyFile, privateKeyString);
+            } catch (IOException e)
             {
                 e.printStackTrace();
-                return null;
             }
-        }
-        @NonNull
-        public static KeyData generateKeyToReturn()
-        {
-            KeyData keyData = new KeyData();
-            KeyPair pair = SecureUtil.generateKeyPair("RSA");
-            keyData.privateKey = pair.getPrivate();
-            keyData.publicKey = pair.getPublic();
-            return keyData;
         }
 
         public static String encrypt(String Message, String PublicKey)
@@ -60,6 +58,10 @@ import cn.hutool.crypto.asymmetric.KeyType;
             return Base64.encodeToString(rsa.encrypt(Message, KeyType.PublicKey),Base64.NO_WRAP);
         }
 
+        public static String decrypt(String message, String privateKey) {
+            cn.hutool.crypto.asymmetric.RSA rsa = new cn.hutool.crypto.asymmetric.RSA(privateKey, null);
+            return rsa.decryptStr(message, KeyType.PrivateKey);
+        }
         public static String decrypt(String message, PrivateKey privateKey) {
             cn.hutool.crypto.asymmetric.RSA rsa = new cn.hutool.crypto.asymmetric.RSA(privateKey, null);
             return rsa.decryptStr(message, KeyType.PrivateKey);
