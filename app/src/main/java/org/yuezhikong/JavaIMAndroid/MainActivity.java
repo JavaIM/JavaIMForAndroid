@@ -133,34 +133,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //用户按下发送按钮
-    public void Send(View view) {
-        EditText UserMessageText = findViewById (R.id.UserSendMessage);
-        String UserMessage = UserMessageText.getText().toString();
-        if (!Session)
-        {
-            ErrorOutputToUserScreen(R.string.Error6);
-        }
-        else
-        {
-            if (client.RequestUserNameAndPassword)
-            {
-                if ("".equals(client.UserName))
-                {
-                    client.UserName = UserMessage;
-                    OutputToChatLogNoRunOnUIThread("请输入密码：");
-                    return;
-                }
-                client.Password = UserMessage;
-                client.RequestUserNameAndPassword = false;
-                synchronized (client.lock) {
-                    client.lock.notifyAll();
-                }
-                return;
-            }
-            client.MessageSendToServer(UserMessage);
-            UserMessageText.setText("");
-        }
-    }
     public void Disconnect(View view) {
         if (Session)
         {
