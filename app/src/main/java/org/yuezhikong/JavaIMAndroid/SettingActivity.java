@@ -156,7 +156,7 @@ public class SettingActivity extends AppCompatActivity {
         //Super类调用
         super.onCreate(savedInstanceState);
         //设置显示界面
-        setContentView(R.layout.setting_activity);
+        setContentView(R.layout.create_activity);
         //开始读取bundle，进行第一次填充
         Bundle bundle = this.getIntent().getExtras();
         int ServerPort = bundle.getInt("ServerPort");

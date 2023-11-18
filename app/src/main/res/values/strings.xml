@@ -22,4 +22,5 @@
     <string name="UsedKeySuffix">，可在设置中修改</string>
     <string name="FileControlActivityLabel">文件管理器</string>
     <string name="PermissionAlertActivityLabel">申请权限</string>
+    <string name="Create">创建</string>
 </resources>

@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         FloatingActionButton floatingActionButton = findViewById(R.id.create);
-        floatingActionButton.setOnClickListener(this::ChangeToSettingActivity);
+        floatingActionButton.setOnClickListener(this::ChangeToCreateActivity);
     }
 
     @Override
@@ -163,28 +163,10 @@ public class MainActivity extends AppCompatActivity {
             ClearScreen(view);
         }
     }
-    public void ChangeToSettingActivity(View view) {
-        String tmpServerAddr;
-        int tmpServerPort;
-        //处理当前已经记录的Addr和Port
-        if (ServerAddr == null)
-        {
-            tmpServerAddr = "";
-        }
-        else
-        {
-            tmpServerAddr = ServerAddr;
-        }
-        tmpServerPort = ServerPort;
+    public void ChangeToCreateActivity(View view) {
         //开始创建新Activity过程
         Intent intent=new Intent();
-        intent.setClass(MainActivity.this, SettingActivity.class);
-        //开始向新Activity发送老Addr和Port，以便填充到编辑框
-        Bundle bundle = new Bundle();
-        bundle.putString("ServerAddr",tmpServerAddr);
-        bundle.putInt("ServerPort",tmpServerPort);
-        //从Bundle put到intent
-        intent.putExtras(bundle);
+        intent.setClass(MainActivity.this, CreateActivity.class);
         //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         //启动Activity
