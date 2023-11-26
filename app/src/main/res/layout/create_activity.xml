@@ -46,12 +46,15 @@
             tools:context=".SettingActivity">
 
             <androidx.cardview.widget.CardView
+                android:id="@+id/card"
                 android:layout_width="376dp"
                 android:layout_height="202dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginStart="18dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="17dp"
                 app:cardBackgroundColor="#FFFEFE"
                 app:cardCornerRadius="30dp"
+                app:layout_constraintBottom_toTopOf="@+id/button"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/cardView">
 
@@ -60,51 +63,33 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
-                    android:layout_marginTop="36dp"
+                    android:layout_marginTop="20dp"
                     android:text="@string/key"
                     android:textSize="16sp" />
 
                 <EditText
                     android:id="@+id/editTextTextMultiLine"
-                    android:layout_width="287dp"
-                    android:layout_height="132dp"
+                    android:layout_width="348dp"
+                    android:layout_height="104dp"
                     android:layout_marginStart="16dp"
+                    android:layout_marginTop="65dp"
+                    android:background="@drawable/edittext_border"
                     android:ems="10"
                     android:gravity="start|top"
-                    android:inputType="textMultiLine" />
+                    android:inputType="textMultiLine"
+                    android:singleLine="false" />
 
             </androidx.cardview.widget.CardView>
 
             <Button
-                android:id="@+id/button5"
+                android:id="@+id/button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="128dp"
-                android:layout_marginTop="436dp"
-                android:text="@string/SaveIpAddressChangeAndSavePortChange"
+                android:layout_marginStart="153dp"
+                android:layout_marginTop="235dp"
+                android:text="导入公钥"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <Button
-                android:id="@+id/button9"
-                android:layout_width="112dp"
-                android:layout_height="64dp"
-                android:layout_marginStart="128dp"
-                android:layout_marginTop="356dp"
-                android:text="@string/ImportServerPublicKey"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <Button
-                android:id="@+id/button10"
-                android:layout_width="132dp"
-                android:layout_height="58dp"
-                android:layout_centerHorizontal="true"
-                android:layout_marginStart="128dp"
-                android:layout_marginTop="284dp"
-                android:text="@string/ManageImportedServerPublicKey"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toBottomOf="@+id/cardView" />
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardView"
@@ -112,12 +97,10 @@
                 android:layout_height="202dp"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="16dp"
-                android:layout_marginEnd="19dp"
-                android:layout_marginBottom="66dp"
+                android:layout_marginBottom="235dp"
                 app:cardBackgroundColor="#FFFEFE"
                 app:cardCornerRadius="30dp"
-                app:layout_constraintBottom_toTopOf="@+id/button10"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toTopOf="@+id/button"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
@@ -126,16 +109,17 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
-                    android:layout_marginTop="36dp"
+                    android:layout_marginTop="20dp"
                     android:text="@string/IPAddress"
                     android:textSize="16sp" />
 
                 <EditText
                     android:id="@+id/SettingIPAddress"
-                    android:layout_width="197dp"
+                    android:layout_width="241dp"
                     android:layout_height="43dp"
                     android:layout_marginStart="16dp"
-                    android:layout_marginTop="60dp"
+                    android:layout_marginTop="50dp"
+                    android:background="@drawable/edittext_border"
                     android:ems="10"
                     android:inputType="textPersonName" />
 
@@ -144,16 +128,17 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
-                    android:layout_marginTop="112dp"
+                    android:layout_marginTop="100dp"
                     android:text="@string/Port"
                     android:textSize="16sp" />
 
                 <EditText
                     android:id="@+id/SettingIPPort"
-                    android:layout_width="197dp"
+                    android:layout_width="240dp"
                     android:layout_height="43dp"
                     android:layout_marginStart="16dp"
                     android:layout_marginTop="136dp"
+                    android:background="@drawable/edittext_border"
                     android:ems="10"
                     android:inputType="number"
                     android:singleLine="true" />

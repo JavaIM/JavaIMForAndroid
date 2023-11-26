@@ -179,13 +179,13 @@ public class SettingActivity extends AppCompatActivity {
         }
         //填充完成
         //正在处理注册
-        Button button = findViewById(R.id.button5);
+        Button button = findViewById(R.id.button);
         button.setOnClickListener(this::OnSaveChange);
         //完成1/4（保存与退出注册）
-        button = findViewById(R.id.button9);
+        button = findViewById(R.id.button);
         button.setOnClickListener(this::OnImportPublicKey);
         //完成2/4（导入服务端公钥注册）
-        button = findViewById(R.id.button10);
+        button = findViewById(R.id.button);
         button.setOnClickListener(this::OnManagePublicKey);
         //完成3/4（服务端公钥管理器注册）
         StorageAccessFrameworkResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
