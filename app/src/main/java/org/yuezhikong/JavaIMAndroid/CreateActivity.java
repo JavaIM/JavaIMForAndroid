@@ -34,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.Objects;
 import java.util.UUID;
 
 public class CreateActivity extends AppCompatActivity {
@@ -53,7 +54,7 @@ public class CreateActivity extends AppCompatActivity {
             if (bundle != null) {
                 FileNames = bundle.getStringArray("FileNames");
             }
-            Spinner FileNameSpinner = findViewById(R.id.spinner);
+            final Spinner FileNameSpinner = findViewById(R.id.spinner);
             if (FileNames != null) {
                 FileNameSpinner.setAdapter(new ArrayAdapter<CharSequence>(this,
                         android.R.layout.simple_spinner_dropdown_item, FileNames));
@@ -69,7 +70,7 @@ public class CreateActivity extends AppCompatActivity {
                 }
             });
             //FileNameSpinner注册完成
-            Spinner FileControlModeSpinner = findViewById(R.id.spinner2);
+            final Spinner FileControlModeSpinner = findViewById(R.id.spinner2);
             FileControlModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -82,7 +83,7 @@ public class CreateActivity extends AppCompatActivity {
             });
             FileControlMode = (getResources().getStringArray(R.array.control_mode_array))[0];
             //FileControlModeSpinner注册完成
-            Button ApplyChange = findViewById(R.id.button7);
+            final Button ApplyChange = findViewById(R.id.button7);
             ApplyChange.setOnClickListener(v -> {
                 onApplyChange();
                 this.finish();
@@ -166,8 +167,8 @@ public class CreateActivity extends AppCompatActivity {
     }
     public void OnSaveChange() {
         //开始获取新ServerAddr和新ServerPort
-        EditText AddrEdit = findViewById(R.id.SettingIPAddress);
-        EditText PortEdit = findViewById(R.id.SettingIPPort);
+        final EditText AddrEdit = findViewById(R.id.SettingIPAddress);
+        final EditText PortEdit = findViewById(R.id.SettingIPPort);
         //开始向bundle写入用户的新ServerAddr和新ServerPort
         MainActivity.ServerAddr = AddrEdit.getText().toString();
         try {
@@ -183,67 +184,67 @@ public class CreateActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        int ServerPort = 0;
-        String ServerAddr = null;
         setContentView(R.layout.create_activity);
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        final Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        Button button = findViewById(R.id.button);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
+        final Button button = findViewById(R.id.button);
         button.setOnClickListener(this::OnImportPublicKey);
+
+        ((EditText) findViewById(R.id.SettingIPAddress)).setText(MainActivity.ServerAddr);
+        ((EditText) findViewById(R.id.SettingIPPort)).setText(MainActivity.ServerPort);
+
         StorageAccessFrameworkResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() != Activity.RESULT_OK) {
                 return;
             }
+            Uri FileURI = null;
+            if (result.getData() != null) {
+                FileURI = result.getData().getData();
+            }
+            if (FileURI == null)
+                return;
+            Log.d(LogHead, "获取到的URI是：" + FileURI);
+            String DisplayName = GetURIDisplayName(FileURI);
+            if (DisplayName == null) {
+                DisplayName = "RandomKeyName" + UUID.randomUUID() + UUID.randomUUID() + ".txt";
+            }
+            final Uri finalFileURI = FileURI;
+            Toast.makeText(CreateActivity.this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
+            if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").exists()))
             {
-                Uri FileURI = null;
-                if (result.getData() != null) {
-                    FileURI = result.getData().getData();
-                }
-                if (FileURI == null)
-                    return;
-                Log.d(LogHead, "获取到的URI是：" + FileURI);
-                String DisplayName = GetURIDisplayName(FileURI);
-                if (DisplayName == null) {
-                    DisplayName = "RandomKeyName" + UUID.randomUUID() + UUID.randomUUID() + ".txt";
-                }
-                final Uri finalFileURI = FileURI;
-                Toast.makeText(CreateActivity.this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
-                if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").exists()))
+                if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").mkdir()))
                 {
-                    if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").mkdir()))
-                    {
-                        Toast.makeText(this,"无法成功创建文件夹",Toast.LENGTH_LONG).show();
-                        return;
-                    }
+                    Toast.makeText(this,"无法成功创建文件夹",Toast.LENGTH_LONG).show();
+                    return;
                 }
-                File ServerPublicKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"+DisplayName);
-                try {
-                    if (!(ServerPublicKey.createNewFile()))
-                    {
-                        Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+            }
+            File ServerPublicKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"+DisplayName);
+            try {
+                if (!(ServerPublicKey.createNewFile()))
+                {
                     Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
                     return;
                 }
-                Application.getInstance().getIOThreadPool().execute(() -> {
-                    try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerPublicKey)))) {
-                        String line;
-                        while ((line = FileInput.readLine()) != null) {
-                            FileOutput.write(line);
-                            FileOutput.newLine();//line是纯文本，没有回车，需要补上
-                            FileOutput.flush();
-                        }
-                        //写入完毕，将此文件设为使用
-                        MainActivity.UsedKey = ServerPublicKey;
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
+                return;
             }
+            Application.getInstance().getIOThreadPool().execute(() -> {
+                try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerPublicKey)))) {
+                    String line;
+                    while ((line = FileInput.readLine()) != null) {
+                        FileOutput.write(line);
+                        FileOutput.newLine();//line是纯文本，没有回车，需要补上
+                        FileOutput.flush();
+                    }
+                    //写入完毕，将此文件设为使用
+                    MainActivity.UsedKey = ServerPublicKey;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
         });
     }
     private String GetURIDisplayName(Uri uri)
@@ -272,15 +273,13 @@ public class CreateActivity extends AppCompatActivity {
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                Intent backIntent = new Intent(this, MainActivity.class);
-                backIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                startActivity(backIntent);
-                return true;
-            case R.id.action_save:
-                OnSaveChange();
+        int id = item.getItemId();
+        if (id == android.R.id.home) {
+            this.finish();
+            return true;
         }
+        else if (id == R.id.action_save)
+            OnSaveChange();
         return super.onOptionsItemSelected(item);
     }
     @Override

@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     public static MainActivity getInstance() {
         return Instance;
     }
+
     public void OutputToChatLog(String msg)
     {
         runOnUiThread(()-> OutputToChatLogNoRunOnUIThread(msg));
@@ -51,10 +52,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void ClearScreen(View view) {
-        runOnUiThread(()->{
-            TextView SocketDisplay = findViewById(R.id.ChatLog);
-            SocketDisplay.setText("");
-        });
+        runOnUiThread(()-> ((TextView) findViewById(R.id.ChatLog)).setText(""));
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        FloatingActionButton floatingActionButton = findViewById(R.id.create);
+        final FloatingActionButton floatingActionButton = findViewById(R.id.create);
         floatingActionButton.setOnClickListener(this::ChangeToCreateActivity);
     }
 
