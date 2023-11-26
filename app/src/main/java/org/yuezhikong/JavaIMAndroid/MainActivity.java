@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -57,10 +56,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void ClearScreen(View view) {
-        runOnUiThread(()->{
-            TextView SocketDisplay = findViewById(R.id.ChatLog);
-            SocketDisplay.setText("");
-        });
+        runOnUiThread(()->
+                ((TextView) findViewById(R.id.ChatLog)).setText(""));
     }
     private ActivityResultLauncher<Intent> SettingActivityResultLauncher;
     @Override
@@ -69,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         Instance = this;
         setContentView(R.layout.activity_main);
         SettingActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
+            final TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
             if (UsedKey == null)
             {
                 DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
@@ -83,19 +80,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        TextView ChatLog = findViewById(R.id.ChatLog);
-        ChatLog.setMovementMethod(ScrollingMovementMethod.getInstance());
-        Button button = findViewById(R.id.button4);
-        button.setOnClickListener(this::ChangeToSettingActivity);
-        button = findViewById(R.id.button8);
-        button.setOnClickListener(this::Send);
-        button = findViewById(R.id.button2);
-        button.setOnClickListener(this::Connect);
-        button = findViewById(R.id.button3);
-        button.setOnClickListener(this::Disconnect);
-        button = findViewById(R.id.button6);
-        button.setOnClickListener(this::ClearScreen);
-        TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
+        ((TextView) findViewById(R.id.ChatLog)).setMovementMethod(ScrollingMovementMethod.getInstance());
+        findViewById(R.id.button4).setOnClickListener(this::ChangeToSettingActivity);
+        findViewById(R.id.button8).setOnClickListener(this::Send);
+        findViewById(R.id.button2).setOnClickListener(this::Connect);
+        findViewById(R.id.button3).setOnClickListener(this::Disconnect);
+        findViewById(R.id.button6).setOnClickListener(this::ClearScreen);
+        final TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
         if (FileUtils.fileListOfServerPublicKey(this).length == 0) {
             UsedKey = null;
             DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
@@ -154,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
 
     //用户按下发送按钮
     public void Send(View view) {
-        EditText UserMessageText = findViewById (R.id.UserSendMessage);
+        final EditText UserMessageText = findViewById (R.id.UserSendMessage);
         String UserMessage = UserMessageText.getText().toString();
         if (!Session)
         {

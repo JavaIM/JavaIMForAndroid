@@ -51,7 +51,7 @@ public class SettingActivity extends AppCompatActivity {
             if (bundle != null) {
                 FileNames = bundle.getStringArray("FileNames");
             }
-            Spinner FileNameSpinner = findViewById(R.id.spinner);
+            final Spinner FileNameSpinner = findViewById(R.id.spinner);
             if (FileNames != null) {
                 FileNameSpinner.setAdapter(new ArrayAdapter<CharSequence>(this,
                         android.R.layout.simple_spinner_dropdown_item, FileNames));
@@ -67,7 +67,7 @@ public class SettingActivity extends AppCompatActivity {
                 }
             });
             //FileNameSpinner注册完成
-            Spinner FileControlModeSpinner = findViewById(R.id.spinner2);
+            final Spinner FileControlModeSpinner = findViewById(R.id.spinner2);
             FileControlModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -80,7 +80,7 @@ public class SettingActivity extends AppCompatActivity {
             });
             FileControlMode = (getResources().getStringArray(R.array.control_mode_array))[0];
             //FileControlModeSpinner注册完成
-            Button ApplyChange = findViewById(R.id.button7);
+            final Button ApplyChange = findViewById(R.id.button7);
             ApplyChange.setOnClickListener(v -> {
                 onApplyChange();
                 this.finish();
@@ -171,22 +171,19 @@ public class SettingActivity extends AppCompatActivity {
             ServerAddr = bundle.getString("ServerAddr");
         }
         //进行第一次填充
-        EditText AddrEdit = findViewById(R.id.SettingIPAddress);
-        EditText PortEdit = findViewById(R.id.SettingIPPort);
+        final EditText AddrEdit = findViewById(R.id.SettingIPAddress);
+        final EditText PortEdit = findViewById(R.id.SettingIPPort);
         AddrEdit.setText(ServerAddr);
         if (ServerPort != 0) {
             PortEdit.setText(String.format(Locale.getDefault(),"%d", ServerPort));
         }
         //填充完成
         //正在处理注册
-        Button button = findViewById(R.id.button5);
-        button.setOnClickListener(this::OnSaveChange);
+        findViewById(R.id.button5).setOnClickListener(this::OnSaveChange);
         //完成1/4（保存与退出注册）
-        button = findViewById(R.id.button9);
-        button.setOnClickListener(this::OnImportPublicKey);
+        findViewById(R.id.button9).setOnClickListener(this::OnImportPublicKey);
         //完成2/4（导入服务端公钥注册）
-        button = findViewById(R.id.button10);
-        button.setOnClickListener(this::OnManagePublicKey);
+        findViewById(R.id.button10).setOnClickListener(this::OnManagePublicKey);
         //完成3/4（服务端公钥管理器注册）
         StorageAccessFrameworkResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() != Activity.RESULT_OK) {
@@ -247,8 +244,8 @@ public class SettingActivity extends AppCompatActivity {
     }
     public void OnSaveChange(View view) {
         //开始获取新ServerAddr和新ServerPort
-        EditText AddrEdit = findViewById(R.id.SettingIPAddress);
-        EditText PortEdit = findViewById(R.id.SettingIPPort);
+        final EditText AddrEdit = findViewById(R.id.SettingIPAddress);
+        final EditText PortEdit = findViewById(R.id.SettingIPPort);
         //开始写入用户的新ServerAddr和新ServerPort
         MainActivity.ServerAddr = AddrEdit.getText().toString();
         try {
