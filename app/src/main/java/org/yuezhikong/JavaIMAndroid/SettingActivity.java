@@ -249,7 +249,7 @@ public class SettingActivity extends AppCompatActivity {
         //开始获取新ServerAddr和新ServerPort
         EditText AddrEdit = findViewById(R.id.SettingIPAddress);
         EditText PortEdit = findViewById(R.id.SettingIPPort);
-        //开始向bundle写入用户的新ServerAddr和新ServerPort
+        //开始写入用户的新ServerAddr和新ServerPort
         MainActivity.ServerAddr = AddrEdit.getText().toString();
         try {
             MainActivity.ServerPort = Integer.parseInt(PortEdit.getText().toString());

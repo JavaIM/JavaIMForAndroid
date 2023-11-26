@@ -1,13 +1,8 @@
 package org.yuezhikong.JavaIMAndroid;
 
-import android.app.ActivityManager;
-import android.app.ApplicationExitInfo;
-import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
@@ -23,7 +18,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 
 import java.io.File;
-import java.util.List;
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
@@ -54,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     }
     private void OutputToChatLogNoRunOnUIThread(String msg)
     {
-        ((TextView)findViewById(R.id.ChatLog)).setText(String.format("%s\r\n%s",((TextView)findViewById(R.id.ChatLog)).getText().toString(),msg));
+        ((TextView)findViewById(R.id.ChatLog)).setText(String.format("%s\n%s",((TextView)findViewById(R.id.ChatLog)).getText().toString(),msg));
         findViewById(R.id.ScrollView).post(() -> ((ScrollView)findViewById(R.id.ScrollView)).fullScroll(ScrollView.FOCUS_DOWN));
     }
     private void ErrorOutputToUserScreen(int id)
@@ -109,17 +103,6 @@ public class MainActivity extends AppCompatActivity {
             UsedKey = new File(getFilesDir().getPath() + "/ServerPublicKey/" + (FileUtils.fileListOfServerPublicKey(this)[0]));
             DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
         }
-        if (Build.VERSION.SDK_INT >= 30) {//当大于等于Android 11（API 30）时读取上一次的退出原因
-            ActivityManager manager = (ActivityManager) getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
-            List<ApplicationExitInfo> exitInfo = manager.getHistoricalProcessExitReasons(getApplication().getPackageName(), 0, 1);
-            if (!exitInfo.isEmpty())
-            {
-                ApplicationExitInfo info = exitInfo.get(0);
-                Log.i("JavaIM","The Last Exit Reason:"+info.getReason());
-                Log.i("JavaIM","TimeStamp:"+info.getTimestamp());
-            }
-        }
-
     }
 
     @Override
