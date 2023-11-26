@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 
+@Deprecated
 public class SettingActivity extends AppCompatActivity {
     private final String LogHead = "JavaIM";
     public static class File_Control_Activity extends AppCompatActivity {
@@ -205,7 +206,7 @@ public class SettingActivity extends AppCompatActivity {
                     DisplayName = "RandomKeyName" + UUID.randomUUID() + UUID.randomUUID() + ".txt";
                 }
                 final Uri finalFileURI = FileURI;
-                Toast.makeText(SettingActivity.this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
                 if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").exists()))
                 {
                     if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").mkdir()))
@@ -306,7 +307,7 @@ public class SettingActivity extends AppCompatActivity {
         }
         //开始创建新Activity过程
         Intent intent=new Intent();
-        intent.setClass(SettingActivity.this, File_Control_Activity.class);
+        intent.setClass(this, File_Control_Activity.class);
         //开始向新Activity发送文件列表，以便填充到编辑框
         Bundle bundle = new Bundle();
         bundle.putStringArray("FileNames",FileUtils.fileListOfServerPublicKey(this));

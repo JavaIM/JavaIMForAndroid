@@ -100,11 +100,16 @@ public class MainActivity extends AppCompatActivity {
         {
             ((TextView)findViewById(R.id.ChatLog)).setText("");
             Session = true;
-            new Thread()
+            new Thread(new ThreadGroup(Thread.currentThread().getThreadGroup(), "Client Thread Group"),"Network Thread")
             {
                 @Override
                 public void run() {
-                    this.setName("Network Thread");
+                    this.setUncaughtExceptionHandler((thread,throwable) -> {
+                        throwable.printStackTrace();
+                        OutputToChatLog("客户端已经终止了运行，因为出现了异常");
+                        OutputToChatLog("详情请查看系统LogCat");
+                        Session = false;
+                    });
                     client = new Client();
                     client.start(ServerAddr,ServerPort);
                 }
@@ -117,8 +122,10 @@ public class MainActivity extends AppCompatActivity {
         if (Session)
         {
             Session = false;
-            client.TerminateClient();
-            ClearScreen(view);
+            if (!client.getClientStopStatus()) {
+                client.TerminateClient();
+                ClearScreen(view);
+            }
         }
     }
     public void ChangeToCreateActivity(View view) {

@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:layout_centerHorizontal="true"
     android:layout_gravity="center_horizontal"
-    tools:context=".SettingActivity$File_Control_Activity">
+    tools:context=".CreateActivity$File_Control_Activity">
 
     <Spinner
         android:id="@+id/spinner"

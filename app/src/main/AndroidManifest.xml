@@ -27,19 +27,13 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SettingActivity"
-            android:exported="false"
-            android:label="@string/SettingActivityLabel"
-            >
-        </activity>
-        <activity
             android:name=".CreateActivity"
             android:exported="false"
             android:label="@string/Create"
             >
         </activity>
         <activity
-            android:name=".SettingActivity$File_Control_Activity"
+            android:name=".CreateActivity$File_Control_Activity"
             android:exported="false"
             android:label="@string/FileControlActivityLabel" />
     </application>
