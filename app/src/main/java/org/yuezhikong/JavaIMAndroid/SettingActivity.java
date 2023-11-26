@@ -47,10 +47,15 @@ public class SettingActivity extends AppCompatActivity {
             setContentView(R.layout.control_file_activity);
             //开始读取bundle，执行填充
             Bundle bundle = this.getIntent().getExtras();
-            String[] FileNames = bundle.getStringArray("FileNames");
+            String[] FileNames = new String[0];
+            if (bundle != null) {
+                FileNames = bundle.getStringArray("FileNames");
+            }
             Spinner FileNameSpinner = findViewById(R.id.spinner);
-            FileNameSpinner.setAdapter(new ArrayAdapter<CharSequence>(this,
-                    android.R.layout.simple_spinner_dropdown_item, FileNames));
+            if (FileNames != null) {
+                FileNameSpinner.setAdapter(new ArrayAdapter<CharSequence>(this,
+                        android.R.layout.simple_spinner_dropdown_item, FileNames));
+            }
             FileNameSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -159,8 +164,12 @@ public class SettingActivity extends AppCompatActivity {
         setContentView(R.layout.create_activity);
         //开始读取bundle，进行第一次填充
         Bundle bundle = this.getIntent().getExtras();
-        int ServerPort = bundle.getInt("ServerPort");
-        String ServerAddr = bundle.getString("ServerAddr");
+        int ServerPort = 0;
+        String ServerAddr = null;
+        if (bundle != null) {
+            ServerPort = bundle.getInt("ServerPort");
+            ServerAddr = bundle.getString("ServerAddr");
+        }
         //进行第一次填充
         EditText AddrEdit = findViewById(R.id.SettingIPAddress);
         EditText PortEdit = findViewById(R.id.SettingIPPort);
@@ -188,6 +197,8 @@ public class SettingActivity extends AppCompatActivity {
                 if (result.getData() != null) {
                     FileURI = result.getData().getData();
                 }
+                if (FileURI == null)
+                    return;
                 Log.d(LogHead, "获取到的URI是：" + FileURI);
                 String DisplayName = GetURIDisplayName(FileURI);
                 if (DisplayName == null) {
@@ -215,24 +226,20 @@ public class SettingActivity extends AppCompatActivity {
                     Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
                     return;
                 }
-                new Thread() {
-                    @Override
-                    public void run() {
-                        this.setName("I/O Thread");
-                        try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerPublicKey)))) {
-                            String line;
-                            while ((line = FileInput.readLine()) != null) {
-                                FileOutput.write(line);
-                                FileOutput.newLine();//line是纯文本，没有回车，需要补上
-                                FileOutput.flush();
-                            }
-                            //写入完毕，将此文件设为使用
-                            MainActivity.UsedKey = ServerPublicKey;
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                Application.getInstance().getIOThreadPool().execute(() -> {
+                    try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerPublicKey)))) {
+                        String line;
+                        while ((line = FileInput.readLine()) != null) {
+                            FileOutput.write(line);
+                            FileOutput.newLine();//line是纯文本，没有回车，需要补上
+                            FileOutput.flush();
                         }
+                        //写入完毕，将此文件设为使用
+                        MainActivity.UsedKey = ServerPublicKey;
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                }.start();
+                });
             }
         });
         // 开始注册StorageAccessFrameworkResultLauncher

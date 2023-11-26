@@ -1,6 +1,7 @@
 package org.yuezhikong.JavaIMAndroid;
 
 import android.util.Base64;
+import android.util.Log;
 
 import com.google.gson.Gson;
 
@@ -11,21 +12,13 @@ import org.yuezhikong.utils.Protocol.NormalProtocol;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Client extends ClientMain {
     private Thread RecvMessageThread;
-    private static final ExecutorService UserRequestDisposeThreadPool = Executors.newSingleThreadExecutor(new ThreadFactory() {
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-
-        @Override
-        public Thread newThread(@NotNull Runnable r) {
-            return new Thread(r, "User Request Dispose Thread #" + threadNumber.getAndIncrement());
-        }
-    });
 
     public boolean getNeedConsoleInput()
     {
@@ -39,6 +32,27 @@ public class Client extends ClientMain {
     @Override
     protected File getServerPublicKeyFile() {
         return MainActivity.UsedKey;
+    }
+
+    @Override
+    protected synchronized ScheduledExecutorService getTimerThreadPool() {
+        if (TimerThreadPool == null)
+        {
+            TimerThreadPool = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+                private final AtomicInteger threadNumber = new AtomicInteger(1);
+
+                @Override
+                public Thread newThread(@NotNull Runnable r) {
+                    Thread newThread = new Thread(getClientThreadGroup(),r, "Timer Thread #" + threadNumber.getAndIncrement());
+                    newThread.setUncaughtExceptionHandler((thread, throwable) -> {
+                        Log.d("JavaIM ThreadPool","线程:"+thread.getName()+"出现异常");
+                        throwable.printStackTrace();
+                    });
+                    return newThread;
+                }
+            });
+        }
+        return TimerThreadPool;
     }
 
     private final Object ClientExitLock = new Object();
@@ -100,7 +114,7 @@ public class Client extends ClientMain {
     }
 
     public void MessageSendToServer(String Message) {
-        UserRequestDisposeThreadPool.execute(() -> {
+        Application.getInstance().getUserRequestDisposeThreadPool().execute(() -> {
             if (!ClientStartStatus)
             {
                 synchronized (ClientStartLock)
@@ -159,7 +173,7 @@ public class Client extends ClientMain {
     public void TerminateClient() {
         MainActivity.Session = false;
         QuitReason = "用户要求关闭";
-        UserRequestDisposeThreadPool.execute(() -> {
+        Application.getInstance().getUserRequestDisposeThreadPool().execute(() -> {
             if (getClientNetworkData() != null) {
                 Gson gson = new Gson();
                 NormalProtocol protocol = new NormalProtocol();
