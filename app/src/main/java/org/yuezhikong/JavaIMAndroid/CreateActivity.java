@@ -192,7 +192,12 @@ public class CreateActivity extends AppCompatActivity {
         button.setOnClickListener(this::OnImportPublicKey);
 
         ((EditText) findViewById(R.id.SettingIPAddress)).setText(MainActivity.ServerAddr);
-        ((EditText) findViewById(R.id.SettingIPPort)).setText(MainActivity.ServerPort);
+        if (MainActivity.ServerPort == 0){
+            ((EditText) findViewById(R.id.SettingIPPort)).setText("");
+        }
+        else {
+            ((EditText) findViewById(R.id.SettingIPPort)).setText(String.valueOf(MainActivity.ServerPort));
+        }
 
         StorageAccessFrameworkResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() != Activity.RESULT_OK) {
