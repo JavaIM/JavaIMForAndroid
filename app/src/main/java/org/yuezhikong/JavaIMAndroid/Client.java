@@ -1,6 +1,7 @@
 package org.yuezhikong.JavaIMAndroid;
 
 import android.util.Base64;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 
@@ -182,8 +183,27 @@ public class Client extends ClientMain {
         });
     }
 
+    private Thread mainThread;
     @Override
     public void start(String ServerAddress, int ServerPort) {
+        mainThread = Thread.currentThread();
+        new Thread(mainThread.getThreadGroup(),"waitInterrupt Thread")
+        {
+            @Override
+            public void run() {
+                this.setUncaughtExceptionHandler(new NonCrashThreadUncaughtExceptionHandler());
+                synchronized (this)
+                {
+                    try {
+                        this.wait();
+                    } catch (InterruptedException ignored) {}
+                }
+                MainActivity.Session = false;
+                synchronized (ClientExitLock) {
+                    ClientExitLock.notifyAll();
+                }
+            }
+        }.start();
         super.SpecialMode = true;
         super.start(ServerAddress, ServerPort);
     }
@@ -206,8 +226,9 @@ public class Client extends ClientMain {
     }
 
     public void TerminateClient() {
-        MainActivity.Session = false;
         QuitReason = "用户要求关闭";
+        MainActivity.getInstance().runOnUiThread(() -> Toast.makeText(MainActivity.getInstance(),
+                "正在等待程序结束...最长可能需要5秒钟", Toast.LENGTH_SHORT).show());
         Application.getInstance().getUserRequestDisposeThreadPool().execute(() -> {
             if (getClientNetworkData() != null) {
                 Gson gson = new Gson();
@@ -226,14 +247,11 @@ public class Client extends ClientMain {
                     e.printStackTrace();
                 }
             }
-            synchronized (ClientExitLock) {
-                ClientExitLock.notifyAll();
-            }
             if (RecvMessageThread != null) {
                 RecvMessageThread.interrupt();
             }
-            if (getClientThreadGroup() != null) {
-                getClientThreadGroup().interrupt();
+            if (mainThread != null) {
+                mainThread.interrupt();
             }
         });
     }

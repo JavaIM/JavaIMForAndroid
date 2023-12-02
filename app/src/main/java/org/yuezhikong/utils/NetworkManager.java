@@ -174,7 +174,7 @@ public final class NetworkManager {
         }
         return new NetworkData(socket);
     }
-    public static class SocketConnectTimeoutException extends RuntimeException
+    public static class SocketConnectTimeoutException extends IOException
     {
         public SocketConnectTimeoutException(String msg)
         {

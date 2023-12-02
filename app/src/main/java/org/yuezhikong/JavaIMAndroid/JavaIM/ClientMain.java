@@ -591,7 +591,12 @@ public class ClientMain extends GeneralMethod {
                 }
             }
             SendMessage();
-        } catch (IOException e) {
+        } catch (NetworkManager.SocketConnectTimeoutException e)
+        {
+            if (QuitReason.isEmpty())
+                QuitReason = "Socket连接请求超时";
+        }
+        catch (IOException e) {
             SaveStackTrace.saveStackTrace(e);
         }
         finally {

@@ -141,6 +141,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }.start();
         }
+        else {
+            Toast.makeText(this, "客户端正在运行中!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     //用户按下发送按钮
