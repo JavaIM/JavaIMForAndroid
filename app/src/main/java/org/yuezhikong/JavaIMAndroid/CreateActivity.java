@@ -191,6 +191,7 @@ public class CreateActivity extends AppCompatActivity {
         final Button button = findViewById(R.id.button);
         button.setOnClickListener(this::OnImportPublicKey);
 
+        ((EditText) findViewById(R.id.SettingServerName)).setText(MainActivity.Servername);
         ((EditText) findViewById(R.id.SettingIPAddress)).setText(MainActivity.ServerAddr);
         if (MainActivity.ServerPort == 0){
             ((EditText) findViewById(R.id.SettingIPPort)).setText("");
@@ -276,6 +277,10 @@ public class CreateActivity extends AppCompatActivity {
         }
         return null;
     }
+
+    private void SaveServer(String Servername, String ServerAddr, int ServerPort){
+
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
@@ -284,7 +289,7 @@ public class CreateActivity extends AppCompatActivity {
             return true;
         }
         else if (id == R.id.action_save)
-            OnSaveChange();
+            SaveServer(((EditText)findViewById(R.id.SettingServerName)).getText().toString(), ((EditText)findViewById(R.id.SettingIPAddress)).getText().toString(), Integer.parseInt(((EditText)findViewById(R.id.SettingIPPort)).getText().toString()));
         return super.onOptionsItemSelected(item);
     }
     @Override

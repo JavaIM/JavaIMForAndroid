@@ -30,6 +30,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static String ServerAddr = "";
+
+    public static String Servername = "";
     public static int ServerPort = 0;
     private static MainActivity Instance;
 

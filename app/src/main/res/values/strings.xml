@@ -24,4 +24,5 @@
     <string name="PermissionAlertActivityLabel">申请权限</string>
     <string name="Create">创建</string>
     <string name="key">请输入或导入服务端公钥：</string>
+    <string name="name">名称：</string>
 </resources>
