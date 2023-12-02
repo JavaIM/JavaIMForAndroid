@@ -14,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,9 +36,9 @@ public class FileUtils {
         return sb;
     }
     @NonNull
-    public static StringBuilder readTxt(File file) throws IOException {
+    public static StringBuilder readTxt(File file,Charset charset) throws IOException {
         StringBuilder sb = new StringBuilder();
-        InputStreamReader isr = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
+        InputStreamReader isr = new InputStreamReader(new FileInputStream(file), charset);
         BufferedReader br = new BufferedReader(isr);
         String mimeTypeLine ;
         sb.delete(0,sb.length());
@@ -47,6 +48,10 @@ public class FileUtils {
         br.close();
         isr.close();
         return sb;
+    }
+    @NonNull
+    public static StringBuilder readTxt(File file) throws IOException {
+        return readTxt(file,StandardCharsets.UTF_8);
     }
     public static void writeTxt(String path,String Text) throws IOException {
         writeTxt(new File(path),Text);
@@ -60,7 +65,10 @@ public class FileUtils {
             dir.delete();
         dir.mkdirs();
     }
-    public static void writeTxt(File file,String Text) throws IOException {
+    public static void writeTxt(File file, String Text) throws IOException {
+        writeTxt(file,Text,StandardCharsets.UTF_8);
+    }
+    public static void writeTxt(File file, String Text, Charset charset) throws IOException {
         if (!(file.exists() && file.isFile()))
         {
             file.delete();
@@ -68,7 +76,7 @@ public class FileUtils {
                 CreateDirectory(file.getParentFile());
             file.createNewFile();
         }
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file),StandardCharsets.UTF_8));
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file),charset));
         writer.write(Text);
         writer.newLine();
         writer.close();

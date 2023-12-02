@@ -1,7 +1,6 @@
 package org.yuezhikong.JavaIMAndroid;
 
 import android.util.Base64;
-import android.util.Log;
 
 import com.google.gson.Gson;
 
@@ -12,6 +11,7 @@ import org.yuezhikong.utils.Protocol.NormalProtocol;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -19,6 +19,44 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Client extends ClientMain {
     private Thread RecvMessageThread;
+
+    /**
+     * 请求用户token
+     * @apiNote Token系统在Android暂时停用！返回永远为空字符串
+     * @return 用户token
+     */
+    @Override
+    protected String RequestUserToken() {
+        return "";
+    }
+
+    @Override
+    protected File getPublicKeyFile() {
+        return PublicKeyFile;
+    }
+
+    @Override
+    protected File getPrivateKeyFile() {
+        return PrivateKeyFile;
+    }
+
+    private final File PublicKeyFile;
+    private final File PrivateKeyFile;
+
+    public Client(File publicKeyFile, File privateKeyFile)
+    {
+        PublicKeyFile = Objects.requireNonNull(publicKeyFile);
+        PrivateKeyFile = Objects.requireNonNull(privateKeyFile);
+    }
+
+    /**
+     * 写入用户token
+     * @apiNote Token系统在Android暂时停用！调用此方法无意义
+     */
+    @Override
+    protected void writeUserToken(String UserToken) {
+
+    }
 
     public boolean getNeedConsoleInput()
     {
@@ -44,10 +82,7 @@ public class Client extends ClientMain {
                 @Override
                 public Thread newThread(@NotNull Runnable r) {
                     Thread newThread = new Thread(getClientThreadGroup(),r, "Timer Thread #" + threadNumber.getAndIncrement());
-                    newThread.setUncaughtExceptionHandler((thread, throwable) -> {
-                        Log.d("JavaIM ThreadPool","线程:"+thread.getName()+"出现异常");
-                        throwable.printStackTrace();
-                    });
+                    newThread.setUncaughtExceptionHandler(new NonCrashThreadUncaughtExceptionHandler());
                     return newThread;
                 }
             });

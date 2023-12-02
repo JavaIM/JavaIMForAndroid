@@ -108,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
                         OutputToChatLog("详情请查看系统LogCat");
                         Session = false;
                     });
-                    client = new Client();
+                    client = new Client(ConfigFile.PublicKeyFile,ConfigFile.PrivateKeyFile);
                     client.start(ServerAddr,ServerPort);
                 }
             }.start();
