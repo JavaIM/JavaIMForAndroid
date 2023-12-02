@@ -2,17 +2,32 @@ package org.yuezhikong.JavaIMAndroid;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
+import org.yuezhikong.JavaIMAndroid.utils.SavedServerFileLayout;
+import org.yuezhikong.utils.SaveStackTrace;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -61,6 +76,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Instance = this;
         setContentView(R.layout.activity_main);
+        CreateServerList();
+        CheckServerList();
     }
 
     @Override
@@ -74,6 +91,63 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
+    }
+
+    public void CreateServerList(){
+        File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
+        SavedServerFileLayout layout = null;
+        Gson gson = new Gson();
+        try {
+            if (((!SavedServerFile.exists() && !SavedServerFile.createNewFile()))){
+                Toast.makeText(this, "由于出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
+            }
+            if (SavedServerFile.length() == 0) {
+                layout = new SavedServerFileLayout();
+                layout.setVersion(1);
+                layout.setServerInformation(new ArrayList<>());
+                FileUtils.writeTxt(SavedServerFile,gson.toJson(layout), StandardCharsets.UTF_8);
+            }
+            else {
+                try {
+                    layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
+                            , SavedServerFileLayout.class);
+                } catch (JsonSyntaxException e) {
+                    Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+                }
+                if (layout.getVersion() != ConfigFile.SavedServerFileVersion)
+                {
+                    Toast.makeText(this, "保存的服务器文件版本与程序版本不一致,操作已被取消!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        } catch  (IOException e) {
+            Toast.makeText(this, "出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
+            SaveStackTrace.saveStackTrace(e);
+        }
+    }
+    public static class CardNotice extends Fragment {
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            return inflater.inflate(R.layout.card_notice, container, false);
+        }
+    }
+    public void CheckServerList(){
+        File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
+        SavedServerFileLayout layout = null;
+        Gson gson = new Gson();
+        try {
+            layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
+                    , SavedServerFileLayout.class);
+            if (layout.getServerInformation().isEmpty()){
+                FragmentManager fragmentManager = getSupportFragmentManager();
+                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                CardNotice CardNotice = new CardNotice();
+                fragmentTransaction.add(R.id.main, CardNotice);
+                fragmentTransaction.commit();
+            }
+        } catch (JsonSyntaxException | IOException e) {
+            Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+        }
     }
     public void Connect(View view) {
         if (UsedKey == null)

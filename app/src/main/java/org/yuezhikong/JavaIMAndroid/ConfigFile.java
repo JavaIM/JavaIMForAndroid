@@ -14,4 +14,5 @@ public class ConfigFile {
     //心跳包时间间隔，单位为：秒
     public static int HeartbeatInterval = 30;
     public static boolean AllowedTransferProtocol = true;
+    public static final int SavedServerFileVersion = 1;
 }
