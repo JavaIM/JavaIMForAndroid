@@ -39,10 +39,7 @@ public class Application extends MultiDexApplication {
             @Override
             public Thread newThread(@NotNull Runnable r) {
                 Thread newThread = new Thread(r, "IO Thread #" + threadNumber.getAndIncrement());
-                newThread.setUncaughtExceptionHandler((thread, throwable) -> {
-                    Log.d("JavaIM ThreadPool","线程:"+thread.getName()+"出现异常");
-                    throwable.printStackTrace();
-                });
+                newThread.setUncaughtExceptionHandler(new NonCrashThreadUncaughtExceptionHandler());
                 return newThread;
             }
         });
@@ -52,10 +49,7 @@ public class Application extends MultiDexApplication {
             @Override
             public Thread newThread(@NotNull Runnable r) {
                 Thread newThread = new Thread(r, "User Request Dispose Thread #" + threadNumber.getAndIncrement());
-                newThread.setUncaughtExceptionHandler((thread, throwable) -> {
-                    Log.d("JavaIM ThreadPool","线程:"+thread.getName()+"出现异常");
-                    throwable.printStackTrace();
-                });
+                newThread.setUncaughtExceptionHandler(new NonCrashThreadUncaughtExceptionHandler());
                 return newThread;
             }
         });

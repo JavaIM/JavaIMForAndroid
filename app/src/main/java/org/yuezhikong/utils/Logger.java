@@ -13,4 +13,5 @@ public class Logger {
     public void warning(String Message) { info(Message); }
     public void error(String Message) { info(Message); }
     public Logger(Object anObject) {}
+    public void OutDate() {}
 }
