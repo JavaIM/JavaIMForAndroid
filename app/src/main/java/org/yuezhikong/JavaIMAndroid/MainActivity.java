@@ -11,8 +11,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -20,6 +18,7 @@ import androidx.fragment.app.FragmentTransaction;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 import org.yuezhikong.JavaIMAndroid.utils.SavedServerFileLayout;
 import org.yuezhikong.utils.SaveStackTrace;
@@ -76,8 +75,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Instance = this;
         setContentView(R.layout.activity_main);
-        CreateServerList();
-        CheckServerList();
     }
 
     @Override
@@ -85,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         final FloatingActionButton floatingActionButton = findViewById(R.id.create);
         floatingActionButton.setOnClickListener(this::ChangeToCreateActivity);
+        if (CreateServerList())
+            CheckServerList();
     }
 
     @Override
@@ -93,17 +92,23 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    public void CreateServerList(){
+
+    /**
+     * 初始化并创建服务器管理json
+     * @return 初始化是否成功
+     */
+    public boolean CreateServerList(){
         File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
-        SavedServerFileLayout layout = null;
+        SavedServerFileLayout layout;
         Gson gson = new Gson();
         try {
             if (((!SavedServerFile.exists() && !SavedServerFile.createNewFile()))){
                 Toast.makeText(this, "由于出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
+                return false;
             }
             if (SavedServerFile.length() == 0) {
                 layout = new SavedServerFileLayout();
-                layout.setVersion(1);
+                layout.setVersion(ConfigFile.SavedServerFileVersion);
                 layout.setServerInformation(new ArrayList<>());
                 FileUtils.writeTxt(SavedServerFile,gson.toJson(layout), StandardCharsets.UTF_8);
             }
@@ -113,15 +118,29 @@ public class MainActivity extends AppCompatActivity {
                             , SavedServerFileLayout.class);
                 } catch (JsonSyntaxException e) {
                     Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+                    return false;
                 }
-                if (layout.getVersion() != ConfigFile.SavedServerFileVersion)
+                if (layout.getVersion() != ConfigFile.SavedServerFileVersion &&
+                        layout.getVersion() != 1//版本1已经兼容自动升级，因此可以继续
+                )
                 {
                     Toast.makeText(this, "保存的服务器文件版本与程序版本不一致,操作已被取消!", Toast.LENGTH_SHORT).show();
+                    return false;
                 }
+                if (layout.getVersion() == 1) {//自动更新判断，后期大于3个版本后，使用switch
+                    layout.setVersion(2);
+                    for (SavedServerFileLayout.ServerInformationBean bean : layout.getServerInformation())
+                    {
+                        bean.setServerToken("");
+                    }
+                }
+                FileUtils.writeTxt(SavedServerFile,gson.toJson(layout), StandardCharsets.UTF_8);
             }
+            return true;
         } catch  (IOException e) {
             Toast.makeText(this, "出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
             SaveStackTrace.saveStackTrace(e);
+            return false;
         }
     }
     public static class CardNotice extends Fragment {
@@ -133,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
     }
     public void CheckServerList(){
         File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
-        SavedServerFileLayout layout = null;
+        SavedServerFileLayout layout;
         Gson gson = new Gson();
         try {
             layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
