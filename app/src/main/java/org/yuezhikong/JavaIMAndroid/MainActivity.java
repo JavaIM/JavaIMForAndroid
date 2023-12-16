@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         floatingActionButton.setOnClickListener(this::ChangeToCreateActivity);
         if (CreateServerList())
             CheckServerList();
+        ShowServerList();
     }
 
     @Override
@@ -150,6 +152,26 @@ public class MainActivity extends AppCompatActivity {
             return inflater.inflate(R.layout.card_notice, container, false);
         }
     }
+    public static class CardServer extends Fragment {
+        private String ServerName;
+        private String ServerAddr;
+        private int port;
+        public void setServerName(String ServerName) {this.ServerName = ServerName;}
+        public void setServerPort(int ServerPort) {
+            this.port = ServerPort;
+        }
+        public void setServerAddr(String ServerAddr) {this.ServerAddr = ServerAddr;}
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            View view = inflater.inflate(R.layout.card_server, container, false);
+            TextView textview = view.findViewById(R.id.ServerName);
+            textview.setText(ServerName);
+            textview = view.findViewById(R.id.Address);
+            textview.setText(ServerAddr + ":" + port);
+            return view;
+        }
+    }
     public void CheckServerList(){
         File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
         SavedServerFileLayout layout;
@@ -167,6 +189,30 @@ public class MainActivity extends AppCompatActivity {
         } catch (JsonSyntaxException | IOException e) {
             Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
         }
+    }
+    public void ShowServerList() {
+        File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath() + "/SavedServers.json");
+        SavedServerFileLayout layout;
+        Gson gson = new Gson();
+        SavedServerFileLayout.ServerInformationBean Information = new SavedServerFileLayout.ServerInformationBean();
+        try {
+            layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
+                    , SavedServerFileLayout.class);
+            Information = layout.getServerInformation().get(0);
+        } catch (JsonSyntaxException | IOException e) {
+            Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+        }
+        String ServerName = Information.getServerRemark();
+        String ServerAddress = Information.getServerAddress();
+        int ServerPort = Information.getServerPort();
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        CardServer CardServer = new CardServer();
+        CardServer.setServerName(ServerName);
+        CardServer.setServerAddr(ServerAddress);
+        CardServer.setServerPort(ServerPort);
+        fragmentTransaction.add(R.id.main, CardServer);
+        fragmentTransaction.commit();
     }
     public void Connect(View view) {
         if (UsedKey == null)

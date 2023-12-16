@@ -25,7 +25,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
+import org.yuezhikong.JavaIMAndroid.utils.SavedServerFileLayout;
+import org.yuezhikong.utils.FileIO;
+import org.yuezhikong.utils.SaveStackTrace;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -34,6 +40,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -278,8 +287,44 @@ public class CreateActivity extends AppCompatActivity {
         return null;
     }
 
-    private void SaveServer(String Servername, String ServerAddr, int ServerPort){
-
+    private boolean SaveServer(String Servername, String ServerAddr, int ServerPort){
+        File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
+        SavedServerFileLayout layout = new SavedServerFileLayout();
+        Gson gson = new Gson();
+        SavedServerFileLayout.ServerInformationBean Information = new SavedServerFileLayout.ServerInformationBean();
+        Information.setServerRemark(Servername);
+        Information.setServerAddress(ServerAddr);
+        Information.setServerPort(ServerPort);
+        try {
+            if (((!SavedServerFile.exists()))){
+                Toast.makeText(this, "由于服务器列表不存在，无法管理保存的服务器，请重启APP", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            else {
+                try {
+                    layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
+                            , SavedServerFileLayout.class);
+                } catch (JsonSyntaxException e) {
+                    Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                layout.getServerInformation().add(Information);
+            }
+        } catch  (IOException e) {
+            Toast.makeText(this, "出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
+            SaveStackTrace.saveStackTrace(e);
+            return false;
+        }
+        finally{
+            try {
+                FileIO.writeStringToFile(SavedServerFile, gson.toJson(layout), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                Toast.makeText(this, "出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
+                SaveStackTrace.saveStackTrace(e);
+                return false;
+            }
+        }
+        return true;
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -288,8 +333,10 @@ public class CreateActivity extends AppCompatActivity {
             this.finish();
             return true;
         }
-        else if (id == R.id.action_save)
-            SaveServer(((EditText)findViewById(R.id.SettingServerName)).getText().toString(), ((EditText)findViewById(R.id.SettingIPAddress)).getText().toString(), Integer.parseInt(((EditText)findViewById(R.id.SettingIPPort)).getText().toString()));
+        else if (id == R.id.action_save) {
+            SaveServer(((EditText) findViewById(R.id.SettingServerName)).getText().toString(), ((EditText) findViewById(R.id.SettingIPAddress)).getText().toString(), Integer.parseInt(((EditText) findViewById(R.id.SettingIPPort)).getText().toString()));
+            finish();
+        }
         return super.onOptionsItemSelected(item);
     }
     @Override
