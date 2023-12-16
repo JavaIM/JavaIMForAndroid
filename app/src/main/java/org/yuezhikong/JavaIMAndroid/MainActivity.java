@@ -83,9 +83,20 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         final FloatingActionButton floatingActionButton = findViewById(R.id.create);
         floatingActionButton.setOnClickListener(this::ChangeToCreateActivity);
+        File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
+        SavedServerFileLayout layout = new SavedServerFileLayout();
+        Gson gson = new Gson();
+        try {
+            layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
+                    , SavedServerFileLayout.class);
+        } catch (JsonSyntaxException | IOException e) {
+        Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+    }
         if (CreateServerList())
             CheckServerList();
-        ShowServerList();
+        if (!(layout.getServerInformation().isEmpty())){
+            ShowServerList();
+        }
     }
 
     @Override

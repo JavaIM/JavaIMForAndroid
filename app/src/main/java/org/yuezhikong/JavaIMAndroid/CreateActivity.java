@@ -313,7 +313,6 @@ public class CreateActivity extends AppCompatActivity {
         } catch  (IOException e) {
             Toast.makeText(this, "出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
             SaveStackTrace.saveStackTrace(e);
-            return false;
         }
         finally{
             try {
@@ -321,7 +320,6 @@ public class CreateActivity extends AppCompatActivity {
             } catch (IOException e) {
                 Toast.makeText(this, "出现文件系统错误，无法管理保存的服务器", Toast.LENGTH_SHORT).show();
                 SaveStackTrace.saveStackTrace(e);
-                return false;
             }
         }
         return true;
