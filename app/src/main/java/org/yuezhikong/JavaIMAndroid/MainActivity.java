@@ -2,16 +2,13 @@ package org.yuezhikong.JavaIMAndroid;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -19,6 +16,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
+import org.yuezhikong.JavaIMAndroid.Fragment.CardNotice;
+import org.yuezhikong.JavaIMAndroid.Fragment.CardServer;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 import org.yuezhikong.JavaIMAndroid.utils.SavedServerFileLayout;
 import org.yuezhikong.utils.SaveStackTrace;
@@ -27,7 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
     public static String Servername = "";
     public static int ServerPort = 0;
     private static MainActivity Instance;
+
+    private FragmentManager fragmentManager;
+    private FragmentTransaction fragmentTransaction;
 
     public static MainActivity getInstance() {
         return Instance;
@@ -99,6 +100,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onStop() {
+        CardNotice CardNotice = (CardNotice) fragmentManager.findFragmentByTag("CardNotice");
+        CardServer CardServer = (CardServer) fragmentManager.findFragmentByTag("CardServer");
+        if (CardNotice != null) {
+            getSupportFragmentManager().beginTransaction().remove(CardNotice).commit();
+        }
+        if (CardServer != null) {
+            getSupportFragmentManager().beginTransaction().remove(CardServer).commit();
+        }
+        super.onStop();
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -156,33 +169,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
-    public static class CardNotice extends Fragment {
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            return inflater.inflate(R.layout.card_notice, container, false);
-        }
-    }
-    public static class CardServer extends Fragment {
-        private String ServerName;
-        private String ServerAddr;
-        private int port;
-        public void setServerName(String ServerName) {this.ServerName = ServerName;}
-        public void setServerPort(int ServerPort) {
-            this.port = ServerPort;
-        }
-        public void setServerAddr(String ServerAddr) {this.ServerAddr = ServerAddr;}
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View view = inflater.inflate(R.layout.card_server, container, false);
-            TextView textview = view.findViewById(R.id.ServerName);
-            textview.setText(ServerName);
-            textview = view.findViewById(R.id.Address);
-            textview.setText(ServerAddr + ":" + port);
-            return view;
-        }
-    }
+
     public void CheckServerList(){
         File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
         SavedServerFileLayout layout;
@@ -190,11 +177,11 @@ public class MainActivity extends AppCompatActivity {
         try {
             layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
                     , SavedServerFileLayout.class);
+            CardNotice CardNotice = new CardNotice();
             if (layout.getServerInformation().isEmpty()){
-                FragmentManager fragmentManager = getSupportFragmentManager();
-                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                CardNotice CardNotice = new CardNotice();
-                fragmentTransaction.add(R.id.main, CardNotice);
+                fragmentManager = getSupportFragmentManager();
+                fragmentTransaction = fragmentManager.beginTransaction();
+                fragmentTransaction.add(R.id.main, CardNotice,"Notice");
                 fragmentTransaction.commit();
             }
         } catch (JsonSyntaxException | IOException e) {
@@ -216,13 +203,26 @@ public class MainActivity extends AppCompatActivity {
         String ServerName = Information.getServerRemark();
         String ServerAddress = Information.getServerAddress();
         int ServerPort = Information.getServerPort();
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentManager = getSupportFragmentManager();
+        fragmentTransaction = fragmentManager.beginTransaction();
         CardServer CardServer = new CardServer();
         CardServer.setServerName(ServerName);
         CardServer.setServerAddr(ServerAddress);
         CardServer.setServerPort(ServerPort);
-        fragmentTransaction.add(R.id.main, CardServer);
+        CardServer.setTop(1);
+        fragmentTransaction.add(R.id.main, CardServer,"CardServer");
+        CardServer CardServer2 = new CardServer();
+        CardServer2.setServerName(ServerName);
+        CardServer2.setServerAddr(ServerAddress);
+        CardServer2.setServerPort(ServerPort);
+        CardServer2.setTop(2);
+        fragmentTransaction.add(R.id.main, CardServer2,"CardServer2");
+        CardServer CardServer3 = new CardServer();
+        CardServer3.setServerName(ServerName);
+        CardServer3.setServerAddr(ServerAddress);
+        CardServer3.setServerPort(ServerPort);
+        CardServer3.setTop(3);
+        fragmentTransaction.add(R.id.main, CardServer3,"CardServer3");
         fragmentTransaction.commit();
     }
     public void Connect(View view) {
@@ -287,5 +287,4 @@ public class MainActivity extends AppCompatActivity {
         //启动Activity
         startActivity(intent);
     }
-
 }

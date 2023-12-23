@@ -18,17 +18,20 @@ package org.yuezhikong.JavaIMAndroid.JavaIM;
 
 import android.util.Base64;
 
-import cn.hutool.crypto.SecureUtil;
-import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 import com.google.gson.Gson;
+
 import org.jetbrains.annotations.NotNull;
 import org.yuezhikong.utils.Logger;
 import org.yuezhikong.utils.Protocol.NormalProtocol;
 import org.yuezhikong.utils.RSA;
 
-import javax.crypto.SecretKey;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+
+import javax.crypto.SecretKey;
+
+import cn.hutool.crypto.SecureUtil;
+import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
 
 public class GeneralMethod implements GeneralMethodInterface{
     @Override

@@ -18,9 +18,6 @@ package org.yuezhikong.utils;
 
 import android.util.Base64;
 
-import androidx.annotation.NonNull;
-
-import org.yuezhikong.JavaIMAndroid.Encryption.KeyData;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 
 import java.io.IOException;
