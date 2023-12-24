@@ -9,6 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         final FloatingActionButton floatingActionButton = findViewById(R.id.create);
         floatingActionButton.setOnClickListener(this::ChangeToCreateActivity);
+        findViewById(R.id.fragmentContainerView).setPadding(0,50,0,0);
         File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
         SavedServerFileLayout layout = new SavedServerFileLayout();
         Gson gson = new Gson();
@@ -94,7 +96,11 @@ public class MainActivity extends AppCompatActivity {
                     , SavedServerFileLayout.class);
         } catch (JsonSyntaxException | IOException e) {
             Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+            return;
         }
+        Fragment cardNotice = getSupportFragmentManager().findFragmentById(R.id.card_notice);
+        if (cardNotice != null)
+            getSupportFragmentManager().beginTransaction().remove(cardNotice).commit();
         if (!(layout.getServerInformation().isEmpty())){
             ShowServerList();
         }
@@ -102,14 +108,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        CardNotice CardNotice = (CardNotice) fragmentManager.findFragmentByTag("CardNotice");
-        CardServer CardServer = (CardServer) fragmentManager.findFragmentByTag("CardServer");
-        if (CardNotice != null) {
-            getSupportFragmentManager().beginTransaction().remove(CardNotice).commit();
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        for (Fragment fragment : getSupportFragmentManager().getFragments())
+        {
+            transaction.remove(fragment);
         }
-        if (CardServer != null) {
-            getSupportFragmentManager().beginTransaction().remove(CardServer).commit();
-        }
+        transaction.commit();
+        CardServer.resetTop();
         super.onStop();
     }
     @Override
@@ -180,9 +185,10 @@ public class MainActivity extends AppCompatActivity {
             CardNotice CardNotice = new CardNotice();
             if (layout.getServerInformation().isEmpty()){
                 fragmentManager = getSupportFragmentManager();
-                fragmentTransaction = fragmentManager.beginTransaction();
-                fragmentTransaction.add(R.id.main, CardNotice,"Notice");
-                fragmentTransaction.commit();
+                fragmentManager.beginTransaction()
+                        .setReorderingAllowed(true)
+                        .add(R.id.fragmentContainerView, CardNotice,"Notice")
+                        .commit();
             }
         } catch (JsonSyntaxException | IOException e) {
             Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
@@ -192,37 +198,23 @@ public class MainActivity extends AppCompatActivity {
         File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath() + "/SavedServers.json");
         SavedServerFileLayout layout;
         Gson gson = new Gson();
-        SavedServerFileLayout.ServerInformationBean Information = new SavedServerFileLayout.ServerInformationBean();
         try {
             layout = gson.fromJson(FileUtils.readTxt(SavedServerFile, StandardCharsets.UTF_8).toString()
                     , SavedServerFileLayout.class);
-            Information = layout.getServerInformation().get(0);
         } catch (JsonSyntaxException | IOException e) {
             Toast.makeText(this, "无法解析保存的服务器文件，请检查文件内容", Toast.LENGTH_SHORT).show();
+            return;
         }
-        String ServerName = Information.getServerRemark();
-        String ServerAddress = Information.getServerAddress();
-        int ServerPort = Information.getServerPort();
-        fragmentManager = getSupportFragmentManager();
-        fragmentTransaction = fragmentManager.beginTransaction();
-        CardServer CardServer = new CardServer();
-        CardServer.setServerName(ServerName);
-        CardServer.setServerAddr(ServerAddress);
-        CardServer.setServerPort(ServerPort);
-        CardServer.setTop(1);
-        fragmentTransaction.add(R.id.main, CardServer,"CardServer");
-        CardServer CardServer2 = new CardServer();
-        CardServer2.setServerName(ServerName);
-        CardServer2.setServerAddr(ServerAddress);
-        CardServer2.setServerPort(ServerPort);
-        CardServer2.setTop(2);
-        fragmentTransaction.add(R.id.main, CardServer2,"CardServer2");
-        CardServer CardServer3 = new CardServer();
-        CardServer3.setServerName(ServerName);
-        CardServer3.setServerAddr(ServerAddress);
-        CardServer3.setServerPort(ServerPort);
-        CardServer3.setTop(3);
-        fragmentTransaction.add(R.id.main, CardServer3,"CardServer3");
+        fragmentTransaction = getSupportFragmentManager()
+                .beginTransaction()
+                .setReorderingAllowed(true);
+        for (SavedServerFileLayout.ServerInformationBean Information : layout.getServerInformation()) {
+            CardServer CardServer = new CardServer();
+            CardServer.setServerName(Information.getServerRemark());
+            CardServer.setServerAddr(Information.getServerAddress());
+            CardServer.setServerPort(Information.getServerPort());
+            fragmentTransaction.add(R.id.fragmentContainerView, CardServer, "CardServer");
+        }
         fragmentTransaction.commit();
     }
     public void Connect(View view) {

@@ -14,11 +14,9 @@ public class CardServer extends Fragment {
     private String ServerName;
     private String ServerAddr;
     private int port;
-    private int top = 0;
-    public void setTop(int i) {
-        for (;i > 0; i--) {
-            top += 300 * i;
-        }
+    private static int top = 0;
+    public static void resetTop() {
+        top = 0;
     }
     public void setServerName(String ServerName) {this.ServerName = ServerName;}
     public void setServerPort(int ServerPort) {
@@ -34,7 +32,10 @@ public class CardServer extends Fragment {
         textview = view.findViewById(R.id.Address);
         textview.setText(ServerAddr + ":" + port);
         ViewGroup.MarginLayoutParams marginLayoutParams = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
-        marginLayoutParams.setMargins(marginLayoutParams.leftMargin, top, marginLayoutParams.rightMargin, marginLayoutParams.bottomMargin);
+        synchronized (CardServer.class) {
+            marginLayoutParams.setMargins(marginLayoutParams.leftMargin, top, marginLayoutParams.rightMargin, marginLayoutParams.bottomMargin);
+            top = top + 300;
+        }
         view.requestLayout();
         return view;
     }

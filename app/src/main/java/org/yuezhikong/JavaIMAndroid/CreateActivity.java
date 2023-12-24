@@ -330,7 +330,15 @@ public class CreateActivity extends AppCompatActivity {
             return true;
         }
         else if (id == R.id.action_save) {
-            SaveServer(((EditText) findViewById(R.id.SettingServerName)).getText().toString(), ((EditText) findViewById(R.id.SettingIPAddress)).getText().toString(), Integer.parseInt(((EditText) findViewById(R.id.SettingIPPort)).getText().toString()));
+            String ServerName = ((EditText) findViewById(R.id.SettingServerName)).getText().toString();
+            String Address = ((EditText) findViewById(R.id.SettingIPAddress)).getText().toString();
+            String Port = ((EditText) findViewById(R.id.SettingIPPort)).getText().toString();
+            if (ServerName.isEmpty() || Address.isEmpty() || Port.isEmpty())
+            {
+                Toast.makeText(this, "必填项未填写，无法保存", Toast.LENGTH_SHORT).show();
+                return super.onOptionsItemSelected(item);
+            }
+            SaveServer(ServerName, Address, Integer.parseInt(Port));
             finish();
         }
         return super.onOptionsItemSelected(item);
