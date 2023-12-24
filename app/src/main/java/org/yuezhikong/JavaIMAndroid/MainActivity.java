@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         final FloatingActionButton floatingActionButton = findViewById(R.id.create);
         floatingActionButton.setOnClickListener(this::ChangeToCreateActivity);
-        findViewById(R.id.fragmentContainerView).setPadding(0,50,0,0);
+        findViewById(R.id.fragmentContainerView).setPadding(0,0,0,0);
         File SavedServerFile = new File(Application.getInstance().getFilesDir().getPath()+"/SavedServers.json");
         SavedServerFileLayout layout = new SavedServerFileLayout();
         Gson gson = new Gson();

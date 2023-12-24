@@ -34,7 +34,8 @@ public class CardServer extends Fragment {
         ViewGroup.MarginLayoutParams marginLayoutParams = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
         synchronized (CardServer.class) {
             marginLayoutParams.setMargins(marginLayoutParams.leftMargin, top, marginLayoutParams.rightMargin, marginLayoutParams.bottomMargin);
-            top = top + 300;
+            view.requestLayout();
+            top = (int) (view.getY() + view.getTop() + top + 300);
         }
         view.requestLayout();
         return view;
