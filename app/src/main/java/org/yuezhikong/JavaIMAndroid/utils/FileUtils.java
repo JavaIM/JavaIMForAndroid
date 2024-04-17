@@ -83,28 +83,28 @@ public class FileUtils {
     }
 
     @NonNull
-    public static String[] fileListOfServerPublicKey(@NotNull Context context)
+    public static String[] fileListOfServerCACerts(@NotNull Context context)
     {
-        File ServerPublicKeyDirectory = new File (context.getFilesDir().getPath()+"/ServerPublicKey/");
-        if (!(ServerPublicKeyDirectory.exists()))
+        File ServerCACertsDirectory = new File (context.getFilesDir().getPath()+"/ServerCACerts/");
+        if (!(ServerCACertsDirectory.exists()))
         {
-            if (!(ServerPublicKeyDirectory.mkdir()))
+            if (!(ServerCACertsDirectory.mkdir()))
             {
                 return new String[0];
             }
-            fileListOfServerPublicKey(context);
+            fileListOfServerCACerts(context);
         }
-        if (ServerPublicKeyDirectory.isDirectory())
+        if (ServerCACertsDirectory.isDirectory())
         {
             List<String> returnFileList = new ArrayList<>();
-            String[] FileList = ServerPublicKeyDirectory.list();
+            String[] FileList = ServerCACertsDirectory.list();
             if (FileList == null)
             {
                 return new String[0];
             }
             for (String file : FileList)
             {
-                File RequestFile = new File(context.getFilesDir().getPath()+"/ServerPublicKey/"+file);
+                File RequestFile = new File(context.getFilesDir().getPath()+"/ServerCACerts/"+file);
                 if (RequestFile.exists() && RequestFile.isFile())
                 {
                     returnFileList.add(file);
@@ -114,11 +114,11 @@ public class FileUtils {
         }
         else
         {
-            if (!(ServerPublicKeyDirectory.delete()) || !(ServerPublicKeyDirectory.mkdir()))
+            if (!(ServerCACertsDirectory.delete()) || !(ServerCACertsDirectory.mkdir()))
             {
                 return new String[0];
             }
-            return fileListOfServerPublicKey(context);
+            return fileListOfServerCACerts(context);
         }
     }
 }

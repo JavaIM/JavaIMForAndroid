@@ -94,8 +94,8 @@ public class SettingActivity extends AppCompatActivity {
                 Toast.makeText(File_Control_Activity.this,"文件名不能为空",Toast.LENGTH_LONG).show();
                 return;
             }
-            File file = new File(getFilesDir().getPath()+"/ServerPublicKey/"+SelectedFileName);
-            if (MainActivity.UsedKey != null && file.getName().equals(MainActivity.UsedKey.getName()) && MainActivity.isSession())
+            File file = new File(getFilesDir().getPath()+"/ServerCACerts/"+SelectedFileName);
+            if (MainActivity.UseCACert != null && file.getName().equals(MainActivity.UseCACert.getName()) && MainActivity.isSession())
             {
                 Toast.makeText(File_Control_Activity.this,"此文件正在使用中",Toast.LENGTH_LONG).show();
                 return;
@@ -107,24 +107,24 @@ public class SettingActivity extends AppCompatActivity {
                     Toast.makeText(File_Control_Activity.this,"文件名不能为空",Toast.LENGTH_LONG).show();
                     return;
                 }
-                for (String Filename : FileUtils.fileListOfServerPublicKey(this))
+                for (String Filename : FileUtils.fileListOfServerCACerts(this))
                 {
                     //判断新名称是否与现有名称重复
-                    if (new File(getFilesDir().getPath()+"/ServerPublicKey/"+((EditText)findViewById(R.id.RenameFileText)).getText().toString())
-                            .getName().equals(new File(getFilesDir().getPath()+"/ServerPublicKey/"+Filename).getName()))
+                    if (new File(getFilesDir().getPath()+"/ServerCACerts/"+((EditText)findViewById(R.id.RenameFileText)).getText().toString())
+                            .getName().equals(new File(getFilesDir().getPath()+"/ServerCACerts/"+Filename).getName()))
                     {
                         Toast.makeText(File_Control_Activity.this,"文件名重复",Toast.LENGTH_LONG).show();
                         return;
                     }
                 }
-                if (!file.renameTo(new File(getFilesDir().getPath()+"/ServerPublicKey/"
+                if (!file.renameTo(new File(getFilesDir().getPath()+"/ServerCACerts/"
                         +((EditText)findViewById(R.id.RenameFileText)).getText().toString())))
                 {
                     Toast.makeText(File_Control_Activity.this,"文件重命名失败",Toast.LENGTH_LONG).show();
                 }
-                else if (file.getPath().equals(MainActivity.UsedKey.getPath()))
+                else if (file.getPath().equals(MainActivity.UseCACert.getPath()))
                 {
-                    MainActivity.UsedKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"
+                    MainActivity.UseCACert = new File(getFilesDir().getPath()+"/ServerCACerts/"
                             +((EditText)findViewById(R.id.RenameFileText)).getText().toString());
                 }
             }
@@ -134,24 +134,24 @@ public class SettingActivity extends AppCompatActivity {
                 {
                     Toast.makeText(File_Control_Activity.this,"文件删除失败",Toast.LENGTH_LONG).show();
                 }
-                //如果删除成功且删除的公钥是正在使用的公钥
-                else if (file.getPath().equals(MainActivity.UsedKey.getPath()))
+                //如果删除成功且删除的证书是正在使用的CA证书
+                else if (file.getPath().equals(MainActivity.UseCACert.getPath()))
                 {
-                    //剩余公钥数量大于0
-                    if (FileUtils.fileListOfServerPublicKey(this).length > 0)
+                    //剩余证书数量大于0
+                    if (FileUtils.fileListOfServerCACerts(this).length > 0)
                     {
-                        //随机一个新公钥
-                        MainActivity.UsedKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"+(FileUtils.fileListOfServerPublicKey(this))[0]);
+                        //随机选择一个新证书
+                        MainActivity.UseCACert = new File(getFilesDir().getPath()+"/ServerCACerts/"+(FileUtils.fileListOfServerCACerts(this))[0]);
                     }
                     else
                     {
-                        MainActivity.UsedKey = null;
+                        MainActivity.UseCACert = null;
                     }
                 }
             }
             else if (getResources().getString(R.string.SetUsedKeyText).equals(FileControlMode))
             {
-                MainActivity.UsedKey = file;
+                MainActivity.UseCACert = file;
             }
         }
     }
@@ -181,10 +181,10 @@ public class SettingActivity extends AppCompatActivity {
         //正在处理注册
         findViewById(R.id.button5).setOnClickListener(this::OnSaveChange);
         //完成1/4（保存与退出注册）
-        findViewById(R.id.button9).setOnClickListener(this::OnImportPublicKey);
-        //完成2/4（导入服务端公钥注册）
-        findViewById(R.id.button10).setOnClickListener(this::OnManagePublicKey);
-        //完成3/4（服务端公钥管理器注册）
+        findViewById(R.id.button9).setOnClickListener(this::OnImportCACert);
+        //完成2/4（导入服务端CA证书注册）
+        findViewById(R.id.button10).setOnClickListener(this::OnManageCACert);
+        //完成3/4（服务端CA证书管理器注册）
         StorageAccessFrameworkResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() != Activity.RESULT_OK) {
                 return;
@@ -203,17 +203,17 @@ public class SettingActivity extends AppCompatActivity {
                 }
                 final Uri finalFileURI = FileURI;
                 Toast.makeText(SettingActivity.this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
-                if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").exists()))
+                if (!(new File(getFilesDir().getPath()+"/ServerCACerts").exists()))
                 {
-                    if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").mkdir()))
+                    if (!(new File(getFilesDir().getPath()+"/ServerCACerts").mkdir()))
                     {
                         Toast.makeText(this,"无法成功创建文件夹",Toast.LENGTH_LONG).show();
                         return;
                     }
                 }
-                File ServerPublicKey = new File(getFilesDir().getPath()+"/ServerPublicKey/"+DisplayName);
+                File ServerCACerts = new File(getFilesDir().getPath()+"/ServerCACerts/"+DisplayName);
                 try {
-                    if (!(ServerPublicKey.createNewFile()))
+                    if (!(ServerCACerts.createNewFile()))
                     {
                         Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
                         return;
@@ -224,7 +224,7 @@ public class SettingActivity extends AppCompatActivity {
                     return;
                 }
                 Application.getInstance().getIOThreadPool().execute(() -> {
-                    try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerPublicKey)))) {
+                    try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerCACerts)))) {
                         String line;
                         while ((line = FileInput.readLine()) != null) {
                             FileOutput.write(line);
@@ -232,7 +232,7 @@ public class SettingActivity extends AppCompatActivity {
                             FileOutput.flush();
                         }
                         //写入完毕，将此文件设为使用
-                        MainActivity.UsedKey = ServerPublicKey;
+                        MainActivity.UseCACert = ServerCACerts;
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -240,7 +240,7 @@ public class SettingActivity extends AppCompatActivity {
             }
         });
         // 开始注册StorageAccessFrameworkResultLauncher
-        ///注册完成
+        // 注册完成
     }
     public void OnSaveChange(View view) {
         //开始获取新ServerAddr和新ServerPort
@@ -257,11 +257,11 @@ public class SettingActivity extends AppCompatActivity {
         //退出此Activity
         this.finish();
     }
-    public void OnImportPublicKey(View v)
+    public void OnImportCACert(View v)
     {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("text/plain");
+        intent.setType("application/x-x509-ca-cert");
         StorageAccessFrameworkResultLauncher.launch(intent);
     }
     private String GetURIDisplayName(Uri uri)
@@ -276,7 +276,7 @@ public class SettingActivity extends AppCompatActivity {
                     return displayName;
                 } catch (IllegalArgumentException e) {
                     new AlertDialog.Builder(this)
-                            .setTitle("由于操作系统错误")
+                            .setTitle("由于出现错误")
                             .setIcon(R.mipmap.ic_launcher_round)
                             .setMessage("无法成功获取到文件名，正在使用随机文件名")
                             .setPositiveButton("我知道了", (dialog, which) -> Log.d(LogHead, "已完成对用户的提示"))
@@ -289,13 +289,13 @@ public class SettingActivity extends AppCompatActivity {
         return null;
     }
 
-    public void OnManagePublicKey(View v)
+    public void OnManageCACert(View v)
     {
-        //检测/ServerPublicKey/是否存在
-        if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").exists()))
+        //检测/ServerCACerts/是否存在
+        if (!(new File(getFilesDir().getPath()+"/ServerCACerts").exists()))
         {
             //不存在时创建文件
-            if (!(new File(getFilesDir().getPath()+"/ServerPublicKey").mkdir()))
+            if (!(new File(getFilesDir().getPath()+"/ServerCACerts").mkdir()))
             {
                 Toast.makeText(this,"文件夹创建失败",Toast.LENGTH_LONG).show();
                 return;
@@ -306,7 +306,7 @@ public class SettingActivity extends AppCompatActivity {
         intent.setClass(SettingActivity.this, File_Control_Activity.class);
         //开始向新Activity发送文件列表，以便填充到编辑框
         Bundle bundle = new Bundle();
-        bundle.putStringArray("FileNames",FileUtils.fileListOfServerPublicKey(this));
+        bundle.putStringArray("FileNames",FileUtils.fileListOfServerCACerts(this));
         //从Bundle put到intent
         intent.putExtras(bundle);
         //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶

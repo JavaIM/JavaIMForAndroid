@@ -8,8 +8,10 @@ import android.util.Log;
 
 import androidx.multidex.MultiDexApplication;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.jetbrains.annotations.NotNull;
 
+import java.security.Security;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +35,10 @@ public class Application extends MultiDexApplication {
     @Override
     public void onCreate() {
         super.onCreate();
+        // 设置 JCE Provider
+        Security.removeProvider("BC");
+        Security.addProvider(new BouncyCastleProvider());
+        // 初始化各种pool
         IOThreadPool = Executors.newCachedThreadPool(new ThreadFactory() {
             private final AtomicInteger threadNumber = new AtomicInteger(1);
 

@@ -6,20 +6,18 @@
     <string name="ConnectButton">连接</string>
     <string name="UserInput">请输入文本：</string>
     <string name="Disconnected">连接被关闭</string>
-    <string name="Error1">IP地址为空，为不可接受内容</string>
+    <string name="Error1">IP地址为空，无法使用！</string>
     <string name="Error2">端口数据不正确！应该为1至65535中的任何数字！</string>
-    <string name="Error3">发生异常IOException</string>
-    <string name="Error5">错误，未找到服务端公钥文件，请重新导入服务端公钥！</string>
+    <string name="Error3">发生IOException</string>
+    <string name="Error5">错误，未找到服务端CA证书文件，请重新导入服务端CA证书！</string>
     <string name="Error6">错误，未连接到任何服务器</string>
     <string name="SendButton">发送</string>
     <string name="DisconnectButton">关闭连接</string>
     <string name="ChangeToSettingActivity">前往设置页面</string>
     <string name="SaveIpAddressChangeAndSavePortChange">保存并退出</string>
     <string name="ClearSocketDisplay">清屏</string>
-    <string name="ImportServerPublicKey">导入服务端公钥</string>
-    <string name="ManageImportedServerPublicKey">管理已导入的服务端公钥</string>
-    <string name="UsedKeyPrefix">正在使用的公钥：</string>
-    <string name="UsedKeySuffix">，可在设置中修改</string>
+    <string name="ImportServerCACerts">导入服务端CA证书</string>
+    <string name="ManageImportedServerCACerts">管理已导入的CA证书</string>
+    <string name="UseCACertTip">正在使用的CA证书：%s，可在设置中修改</string>
     <string name="FileControlActivityLabel">文件管理器</string>
-    <string name="PermissionAlertActivityLabel">申请权限</string>
 </resources>

@@ -63,7 +63,7 @@
         android:layout_height="64dp"
         android:layout_marginStart="138dp"
         android:layout_marginTop="303dp"
-        android:text="@string/ImportServerPublicKey"
+        android:text="@string/ImportServerCACerts"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -74,7 +74,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginStart="128dp"
         android:layout_marginTop="392dp"
-        android:text="@string/ManageImportedServerPublicKey"
+        android:text="@string/ManageImportedServerCACerts"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

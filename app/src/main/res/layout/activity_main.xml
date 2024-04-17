@@ -77,12 +77,12 @@
         app:layout_constraintTop_toBottomOf="@+id/button4" />
 
     <TextView
-        android:id="@+id/DisplayUsedKey"
+        android:id="@+id/DisplayUseCACert"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
         android:layout_marginTop="372dp"
-        android:text="@string/UsedKeyPrefix"
+        android:text='证书状态'
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

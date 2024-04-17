@@ -14,7 +14,7 @@
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  * You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-package org.yuezhikong.utils.Protocol;
+package org.yuezhikong.Protocol;
 
 /**
  * 接受/发送的json的序列化/反序列化流程
@@ -22,74 +22,27 @@ package org.yuezhikong.utils.Protocol;
  */
 public class NormalProtocol {
 
-    private MessageHead MessageHead;
-    private MessageBody MessageBody;
+    /**
+     * type :
+     * Message :
+     */
 
-    public MessageHead getMessageHead() {
-        return MessageHead;
+    private String type;
+    private String Message;
+
+    public String getType() {
+        return type;
     }
 
-    public void setMessageHead(MessageHead MessageHead) {
-        this.MessageHead = MessageHead;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public MessageBody getMessageBody() {
-        return MessageBody;
+    public String getMessage() {
+        return Message;
     }
 
-    public void setMessageBody(MessageBody MessageBody) {
-        this.MessageBody = MessageBody;
-    }
-
-    public static class MessageHead {
-        /**
-         * Version : 0
-         * type :
-         */
-
-        private int Version;
-        private String type;
-
-        public int getVersion() {
-            return Version;
-        }
-
-        public void setVersion(int Version) {
-            this.Version = Version;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-    }
-
-    public static class MessageBody {
-        /**
-         * Message :
-         * FileLong : 0
-         */
-
-        private String Message;
-        private int FileLong;
-
-        public String getMessage() {
-            return Message;
-        }
-
-        public void setMessage(String Message) {
-            this.Message = Message;
-        }
-
-        public int getFileLong() {
-            return FileLong;
-        }
-
-        public void setFileLong(int FileLong) {
-            this.FileLong = FileLong;
-        }
+    public void setMessage(String Message) {
+        this.Message = Message;
     }
 }

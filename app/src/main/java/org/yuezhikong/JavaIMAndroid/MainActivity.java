@@ -1,8 +1,12 @@
 package org.yuezhikong.JavaIMAndroid;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.method.ScrollingMovementMethod;
+import android.text.style.ForegroundColorSpan;
 import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
@@ -12,18 +16,39 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.Gson;
+
+import org.jetbrains.annotations.NotNull;
+import org.yuezhikong.Client;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
+import org.yuezhikong.Protocol.GeneralProtocol;
+import org.yuezhikong.Protocol.NormalProtocol;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
     static boolean Session = false;
-    private Client client;
+    private boolean StartComplete = false;
+    private AndroidClient client;
 
-    public static File UsedKey;
+    public static File UseCACert;
 
     /**
      * 获取会话状态
@@ -41,18 +66,15 @@ public class MainActivity extends AppCompatActivity {
     public static MainActivity getInstance() {
         return Instance;
     }
-    public void OutputToChatLog(String msg)
-    {
-        runOnUiThread(()-> OutputToChatLogNoRunOnUIThread(msg));
-    }
-    private void OutputToChatLogNoRunOnUIThread(String msg)
-    {
-        ((TextView)findViewById(R.id.ChatLog)).setText(String.format("%s\n%s",((TextView)findViewById(R.id.ChatLog)).getText().toString(),msg));
-        findViewById(R.id.ScrollView).post(() -> ((ScrollView)findViewById(R.id.ScrollView)).fullScroll(ScrollView.FOCUS_DOWN));
+    public void OutputToChatLog(CharSequence msg) {
+        runOnUiThread(() -> {
+            ((TextView) findViewById(R.id.ChatLog)).setText(String.format("%s\n%s", ((TextView) findViewById(R.id.ChatLog)).getText().toString(), msg));
+            findViewById(R.id.ScrollView).post(() -> ((ScrollView) findViewById(R.id.ScrollView)).fullScroll(ScrollView.FOCUS_DOWN));
+        });
     }
     private void ErrorOutputToUserScreen(int id)
     {
-        runOnUiThread(()-> Toast.makeText(MainActivity.this,getResources().getString(id),Toast.LENGTH_LONG).show());
+        runOnUiThread(()-> Toast.makeText(this,getResources().getString(id),Toast.LENGTH_LONG).show());
     }
 
     public void ClearScreen(View view) {
@@ -66,13 +88,13 @@ public class MainActivity extends AppCompatActivity {
         Instance = this;
         setContentView(R.layout.activity_main);
         SettingActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            final TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
-            if (UsedKey == null)
+            final TextView DisplayUseCACertsTextView = findViewById(R.id.DisplayUseCACert);
+            if (UseCACert == null)
             {
-                DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
+                DisplayUseCACertsTextView.setText("目前没有存在的CA证书，可在设置中导入");
             }
             else {
-                DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
+                DisplayUseCACertsTextView.setText(String.format(getResources().getString(R.string.UseCACertTip), UseCACert.getName()));
             }
         });
     }
@@ -86,13 +108,13 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.button2).setOnClickListener(this::Connect);
         findViewById(R.id.button3).setOnClickListener(this::Disconnect);
         findViewById(R.id.button6).setOnClickListener(this::ClearScreen);
-        final TextView DisplayUsedKeyTextView = findViewById(R.id.DisplayUsedKey);
-        if (FileUtils.fileListOfServerPublicKey(this).length == 0) {
-            UsedKey = null;
-            DisplayUsedKeyTextView.setText("目前没有存在的公钥，可在设置中导入");
+        final TextView DisplayUseCACertsTextView = findViewById(R.id.DisplayUseCACert);
+        if (FileUtils.fileListOfServerCACerts(this).length == 0) {
+            UseCACert = null;
+            DisplayUseCACertsTextView.setText("目前没有存在的CA证书，可在设置中导入");
         } else {
-            UsedKey = new File(getFilesDir().getPath() + "/ServerPublicKey/" + (FileUtils.fileListOfServerPublicKey(this)[0]));
-            DisplayUsedKeyTextView.setText(String.format("%s%s%s", getResources().getString(R.string.UsedKeyPrefix), UsedKey.getName(), getResources().getString(R.string.UsedKeySuffix)));
+            UseCACert = new File(getFilesDir().getPath() + "/ServerCACerts/" + (FileUtils.fileListOfServerCACerts(this)[0]));
+            DisplayUseCACertsTextView.setText(String.format(getResources().getString(R.string.UseCACertTip), UseCACert.getName()));
         }
     }
 
@@ -102,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
     public void Connect(View view) {
-        if (UsedKey == null)
+        if (UseCACert == null)
         {
             ErrorOutputToUserScreen(R.string.Error5);
             return;
@@ -114,30 +136,204 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         int port = ServerPort;
-        if (port <= 0)
+        if (port <= 0 || port > 65535)
         {
             ErrorOutputToUserScreen(R.string.Error2);
+            return;
         }
-        if (port > 65535)
+        final EditText UserName = new EditText(this);
+        new AlertDialog.Builder(this)
+                .setTitle("请输入用户名").setView(UserName)
+                .setPositiveButton("确定", (dialog, which) -> {
+                    // 用户名
+                    String Username = UserName.getText().toString();
+                    EditText Passwd = new EditText(this);
+                    new AlertDialog.Builder(this)
+                            .setTitle("请输入密码").setView(Passwd)
+                            .setPositiveButton("确定",(Dialog,Which) -> {
+                                String passwd = Passwd.getText().toString();
+                                ConnectToServer0(ServerAddr,ServerPort,UseCACert,Username,passwd);
+                            }).show();
+                }).show();
+
+    }
+
+    private class AndroidClient extends Client
+    {
+        @Override
+        protected ThreadFactory getWorkerThreadFactory() {
+            return new ThreadFactory() {
+                private final AtomicInteger threadNumber = new AtomicInteger(1);
+                private final ThreadGroup IOThreadGroup = new ThreadGroup(getClientThreadGroup(), "IO Thread Group");
+
+                @Override
+                public Thread newThread(@NotNull Runnable r) {
+                    Thread newThread = new Thread(IOThreadGroup,
+                            r,"Netty Worker Thread #"+threadNumber.getAndIncrement());
+                    newThread.setUncaughtExceptionHandler(new NonCrashThreadUncaughtExceptionHandler()
+                    {
+                        @Override
+                        public void uncaughtException(@NonNull Thread thread, @NonNull Throwable throwable) {
+                            super.uncaughtException(thread, throwable);
+                            OutputToChatLog("客户端已经终止了运行，因为出现了异常");
+                            StringWriter sw = new StringWriter();
+                            PrintWriter pw = new PrintWriter(sw);
+                            throwable.printStackTrace(pw);
+                            OutputToChatLog(sw.toString());
+                            Session = false;
+                            StartComplete = false;
+                            UserNetworkRequestThreadPool.shutdownNow();
+                            getClientThreadGroup().interrupt();
+                        }
+                    });
+                    return newThread;
+                }
+            };
+        }
+
+        private final Gson publicGson = new Gson();
+
+        public Gson getGson() {
+            return publicGson;
+        }
+
+        /**
+         * 获取协议版本
+         * @return 协议版本
+         */
+        public int getProtocolVersion()
         {
-            ErrorOutputToUserScreen(R.string.Error2);
+            return protocolVersion;
         }
+
+        @Override
+        public void disconnect() {
+            super.disconnect();
+            Session = false;
+            StartComplete = false;
+            UserNetworkRequestThreadPool.shutdownNow();
+            getClientThreadGroup().interrupt();
+        }
+
+        private final ThreadGroup ClientThreadGroup;
+        public AndroidClient(ThreadGroup ClientThreadGroup)
+        {
+            this.ClientThreadGroup = ClientThreadGroup;
+        }
+        private ThreadGroup getClientThreadGroup() {
+            return ClientThreadGroup;
+        }
+
+        @Override
+        protected void onClientLogin() {
+            StartComplete = true;
+        }
+
+        @Override
+        protected String getToken() {
+            // 暂不支持
+            return "";
+        }
+
+        @Override
+        protected void setToken(String newToken) {
+            // 暂不支持
+        }
+
+        @Override
+        protected void NormalPrint(String data) {
+            OutputToChatLog(data);
+        }
+
+        @Override
+        protected void NormalPrintf(String data, Object... args) {
+            OutputToChatLog(String.format(data,args));
+        }
+
+        @Override
+        protected void ErrorPrint(String data) {
+            ForegroundColorSpan red = new ForegroundColorSpan(Color.RED);
+            SpannableStringBuilder builder = new SpannableStringBuilder(data);
+            builder.setSpan(red, 0, data.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            OutputToChatLog(builder);
+        }
+
+        @Override
+        protected void ErrorPrintf(String data, Object... args) {
+            String FormattedString = String.format(data,args);
+            ForegroundColorSpan red = new ForegroundColorSpan(Color.RED);
+            SpannableStringBuilder builder = new SpannableStringBuilder(FormattedString);
+            builder.setSpan(red, 0, FormattedString.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            OutputToChatLog(builder);
+        }
+    }
+
+    private ExecutorService UserNetworkRequestThreadPool;
+    /**
+     * 连接到服务器
+     * @param ServerAddress 服务器地址
+     * @param Port 端口
+     * @param ServerCACert 服务器CA证书
+     * @param UserName 用户名
+     * @param Passwd 密码
+     */
+    private void ConnectToServer0(String ServerAddress, int Port, File ServerCACert , String UserName, String Passwd)
+    {
         if (!Session)
         {
             ((TextView)findViewById(R.id.ChatLog)).setText("");
             Session = true;
-            new Thread(new ThreadGroup(Thread.currentThread().getThreadGroup(), "Client Thread Group"),"Network Thread")
+            ThreadGroup group = new ThreadGroup(Thread.currentThread().getThreadGroup(), "Client Thread Group");
+            UserNetworkRequestThreadPool = Executors.newSingleThreadExecutor(new ThreadFactory() {
+                private final AtomicInteger threadNumber = new AtomicInteger(1);
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread newThread = new Thread(group,
+                            r,"User Request Thread #"+threadNumber.getAndIncrement());
+                    newThread.setUncaughtExceptionHandler(new NonCrashThreadUncaughtExceptionHandler()
+                    {
+                        @Override
+                        public void uncaughtException(@NonNull Thread thread, @NonNull Throwable throwable) {
+                            super.uncaughtException(thread, throwable);
+                            OutputToChatLog("客户端已经终止了运行，因为出现了异常");
+                            StringWriter sw = new StringWriter();
+                            PrintWriter pw = new PrintWriter(sw);
+                            throwable.printStackTrace(pw);
+                            OutputToChatLog(sw.toString());
+                            Session = false;
+                            StartComplete = false;
+                            UserNetworkRequestThreadPool.shutdownNow();
+                            group.interrupt();
+                        }
+                    });
+                    return newThread;
+                }
+            });
+            X509Certificate ServerCARootCert;
+            try (FileInputStream stream = new FileInputStream(ServerCACert)){
+                CertificateFactory factory = CertificateFactory.getInstance("X.509","BC");
+                ServerCARootCert = (X509Certificate) factory.generateCertificate(stream);
+            } catch (CertificateException | NoSuchProviderException | IOException e) {
+                throw new RuntimeException("Failed to open X.509 CA Cert & X.509 RSA Private key, Permission denied?",e);
+            }
+            new Thread(group,"Client Thread")
             {
                 @Override
                 public void run() {
                     this.setUncaughtExceptionHandler((thread,throwable) -> {
                         throwable.printStackTrace();
                         OutputToChatLog("客户端已经终止了运行，因为出现了异常");
-                        OutputToChatLog("详情请查看系统LogCat");
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+                        throwable.printStackTrace(pw);
+                        OutputToChatLog(sw.toString());
                         Session = false;
+                        StartComplete = false;
+                        UserNetworkRequestThreadPool.shutdownNow();
+                        group.interrupt();
                     });
-                    client = new Client(ConfigFile.PublicKeyFile,ConfigFile.PrivateKeyFile);
-                    client.start(ServerAddr,ServerPort);
+                    client = new AndroidClient(group);
+                    client.start(ServerAddress, Port, ServerCARootCert, UserName, Passwd);
                 }
             }.start();
         }
@@ -156,27 +352,31 @@ public class MainActivity extends AppCompatActivity {
         }
         else
         {
-            if (client.getNeedConsoleInput())
+            if (StartComplete)
             {
-                client.setConsoleInput(UserMessage);
-                client.setNeedConsoleInput(false);
-                synchronized (client.getConsoleInputLock()) {
-                    client.getConsoleInputLock().notifyAll();
-                }
-                return;
+                UserNetworkRequestThreadPool.execute(() -> {
+                    NormalProtocol userInput = new NormalProtocol();
+                    userInput.setType("Chat");
+                    userInput.setMessage(UserMessage);
+
+                    GeneralProtocol generalProtocol = new GeneralProtocol();
+                    generalProtocol.setProtocolData(client.getGson().toJson(userInput));
+                    generalProtocol.setProtocolVersion(client.getProtocolVersion());
+                    generalProtocol.setProtocolName("NormalProtocol");
+
+                    client.SendData(client.getGson().toJson(generalProtocol));
+                });
             }
-            client.MessageSendToServer(UserMessage);
-            UserMessageText.setText("");
+            else {
+                Toast.makeText(this, "客户端尚未启动完毕", Toast.LENGTH_SHORT).show();
+            }
         }
     }
     public void Disconnect(View view) {
         if (Session)
         {
             Session = false;
-            if (!client.getClientStopStatus()) {
-                client.TerminateClient();
-                ClearScreen(view);
-            }
+            client.disconnect();
         }
     }
     public void ChangeToSettingActivity(View view) {
@@ -192,6 +392,8 @@ public class MainActivity extends AppCompatActivity {
         Bundle bundle = new Bundle();
         bundle.putString("ServerAddr",tmpServerAddr);
         bundle.putInt("ServerPort",tmpServerPort);
+
+
         //从Bundle put到intent
         intent.putExtras(bundle);
         //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶
