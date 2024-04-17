@@ -63,9 +63,6 @@ public class MainActivity extends AppCompatActivity {
     public static int ServerPort = 0;
     private static MainActivity Instance;
 
-    public static MainActivity getInstance() {
-        return Instance;
-    }
     public void OutputToChatLog(CharSequence msg) {
         runOnUiThread(() -> {
             ((TextView) findViewById(R.id.ChatLog)).setText(String.format("%s\n%s", ((TextView) findViewById(R.id.ChatLog)).getText().toString(), msg));
@@ -97,11 +94,6 @@ public class MainActivity extends AppCompatActivity {
                 DisplayUseCACertsTextView.setText(String.format(getResources().getString(R.string.UseCACertTip), UseCACert.getName()));
             }
         });
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
         ((TextView) findViewById(R.id.ChatLog)).setMovementMethod(ScrollingMovementMethod.getInstance());
         findViewById(R.id.button4).setOnClickListener(this::ChangeToSettingActivity);
         findViewById(R.id.button8).setOnClickListener(this::Send);
@@ -334,6 +326,11 @@ public class MainActivity extends AppCompatActivity {
                     });
                     client = new AndroidClient(group);
                     client.start(ServerAddress, Port, ServerCARootCert, UserName, Passwd);
+
+                    Session = false;
+                    StartComplete = false;
+                    UserNetworkRequestThreadPool.shutdownNow();
+                    group.interrupt();
                 }
             }.start();
         }
