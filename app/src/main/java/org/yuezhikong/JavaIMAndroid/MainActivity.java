@@ -3,7 +3,7 @@ package org.yuezhikong.JavaIMAndroid;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.method.ScrollingMovementMethod;
 import android.text.style.ForegroundColorSpan;
@@ -25,6 +25,7 @@ import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;
 import org.yuezhikong.Client;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
+import org.yuezhikong.JavaIMAndroid.utils.NetworkHelper;
 import org.yuezhikong.Protocol.GeneralProtocol;
 import org.yuezhikong.Protocol.NormalProtocol;
 
@@ -61,28 +62,47 @@ public class MainActivity extends AppCompatActivity {
 
     public static String ServerAddr = "";
     public static int ServerPort = 0;
-    private static MainActivity Instance;
 
+    /**
+     * 打印到聊天日志(支持富文本)
+     * @param msg 要打印的消息
+     */
     public void OutputToChatLog(CharSequence msg) {
         runOnUiThread(() -> {
-            ((TextView) findViewById(R.id.ChatLog)).setText(String.format("%s\n%s", ((TextView) findViewById(R.id.ChatLog)).getText().toString(), msg));
+            TextView view = findViewById(R.id.ChatLog);
+            RichTextTextViewWrite(msg,view);
             findViewById(R.id.ScrollView).post(() -> ((ScrollView) findViewById(R.id.ScrollView)).fullScroll(ScrollView.FOCUS_DOWN));
         });
+    }
+
+    /**
+     * 追加富文本消息
+     * @param msg 消息
+     * @param targetTextView 目标textview
+     */
+    private void RichTextTextViewWrite(CharSequence msg, TextView targetTextView)
+    {
+        if (targetTextView.getText() == null || targetTextView.getText().equals("") || !(targetTextView.getText() instanceof SpannableString))
+            targetTextView.setText(new SpannableString(""));
+        SpannableStringBuilder builder = new SpannableStringBuilder((SpannableString) targetTextView.getText());
+        builder.append(msg).append("\n");
+        targetTextView.setText(builder);
     }
     private void ErrorOutputToUserScreen(int id)
     {
         runOnUiThread(()-> Toast.makeText(this,getResources().getString(id),Toast.LENGTH_LONG).show());
     }
 
-    public void ClearScreen(View view) {
-        runOnUiThread(()->
-                ((TextView) findViewById(R.id.ChatLog)).setText(""));
+    private void ClearScreen(View view) {
+        ClearScreen();
+    }
+    public void ClearScreen() {
+        runOnUiThread(()-> ((TextView)findViewById(R.id.ChatLog)).setText(""));
     }
     private ActivityResultLauncher<Intent> SettingActivityResultLauncher;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Instance = this;
         setContentView(R.layout.activity_main);
         SettingActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             final TextView DisplayUseCACertsTextView = findViewById(R.id.DisplayUseCACert);
@@ -116,6 +136,13 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
     public void Connect(View view) {
+        if (!NetworkHelper.isNetworkCanUse(this))
+        {
+            Toast.makeText(this, "当前无网络可用!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (NetworkHelper.isCellular(this))
+            Toast.makeText(this, "您正在使用移动数据网络，请注意流量消耗", Toast.LENGTH_SHORT).show();
         if (UseCACert == null)
         {
             ErrorOutputToUserScreen(R.string.Error5);
@@ -244,20 +271,22 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void ErrorPrint(String data) {
-            ForegroundColorSpan red = new ForegroundColorSpan(Color.RED);
-            SpannableStringBuilder builder = new SpannableStringBuilder(data);
-            builder.setSpan(red, 0, data.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            OutputToChatLog(builder);
+            OutputToChatLog(getRichText(data, Color.RED));
         }
 
         @Override
         protected void ErrorPrintf(String data, Object... args) {
             String FormattedString = String.format(data,args);
-            ForegroundColorSpan red = new ForegroundColorSpan(Color.RED);
-            SpannableStringBuilder builder = new SpannableStringBuilder(FormattedString);
-            builder.setSpan(red, 0, FormattedString.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            OutputToChatLog(builder);
+            OutputToChatLog(getRichText(FormattedString, Color.RED));
         }
+    }
+
+    private SpannableString getRichText(String Text, int color)
+    {
+        ForegroundColorSpan colorSpan = new ForegroundColorSpan(color);
+        SpannableString string = new SpannableString(Text);
+        string.setSpan(colorSpan,0,string.length(),SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return string;
     }
 
     private ExecutorService UserNetworkRequestThreadPool;
@@ -273,7 +302,8 @@ public class MainActivity extends AppCompatActivity {
     {
         if (!Session)
         {
-            ((TextView)findViewById(R.id.ChatLog)).setText("");
+            ClearScreen();
+
             Session = true;
             ThreadGroup group = new ThreadGroup(Thread.currentThread().getThreadGroup(), "Client Thread Group");
             UserNetworkRequestThreadPool = Executors.newSingleThreadExecutor(new ThreadFactory() {
@@ -327,6 +357,8 @@ public class MainActivity extends AppCompatActivity {
                     client = new AndroidClient(group);
                     client.start(ServerAddress, Port, ServerCARootCert, UserName, Passwd);
 
+
+                    OutputToChatLog(getRichText("客户端进程已经结束...", Color.parseColor("#00CCFF")));
                     Session = false;
                     StartComplete = false;
                     UserNetworkRequestThreadPool.shutdownNow();
