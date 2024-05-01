@@ -1,17 +1,14 @@
 package org.yuezhikong.JavaIMAndroid;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -19,299 +16,334 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+
+import com.google.gson.Gson;
 
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.util.Locale;
-import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class SettingActivity extends AppCompatActivity {
-    private final String LogHead = "JavaIM";
-    public static class File_Control_Activity extends AppCompatActivity {
-        private String SelectedFileName = "";
-        private String FileControlMode = "";
-        @Override
-        protected void onCreate(@Nullable Bundle savedInstanceState) {
-            //Super类调用
-            super.onCreate(savedInstanceState);
-            //设置显示界面
-            setContentView(R.layout.control_file_activity);
-            //开始读取bundle，执行填充
-            Bundle bundle = this.getIntent().getExtras();
-            String[] FileNames = new String[0];
-            if (bundle != null) {
-                FileNames = bundle.getStringArray("FileNames");
-            }
-            final Spinner FileNameSpinner = findViewById(R.id.spinner);
-            if (FileNames != null) {
-                FileNameSpinner.setAdapter(new ArrayAdapter<CharSequence>(this,
-                        android.R.layout.simple_spinner_dropdown_item, FileNames));
-            }
-            FileNameSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                    SelectedFileName = adapterView.getItemAtPosition(i).toString();
-                }
+    private final String LogHead = "JavaIM Setting";
 
-                @Override
-                public void onNothingSelected(AdapterView<?> adapterView) {
-                }
-            });
-            //FileNameSpinner注册完成
-            final Spinner FileControlModeSpinner = findViewById(R.id.spinner2);
-            FileControlModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                    FileControlMode = adapterView.getItemAtPosition(i).toString();
-                }
+    private String SAFWriteData = "";
 
-                @Override
-                public void onNothingSelected(AdapterView<?> adapterView) {
-                }
+    private addNewServerDialogContent addNewServerDialogContentInstance = null;
+
+    private static class addNewServerDialogContent extends ConstraintLayout {
+        private final EditText ServerName;
+        private final EditText IPAddress;
+        private final EditText Port;
+
+        public addNewServerDialogContent(Context context, LayoutInflater inflater, ActivityResultLauncher<Intent> CACertSelectSAFResult) {
+            super(context);
+            inflater.inflate(R.layout.server_create_dialog_content, this, true);
+            IPAddress = findViewById(R.id.IPAddress);
+            Port = findViewById(R.id.Port);
+            ServerName = findViewById(R.id.ServerNameInput);
+
+            findViewById(R.id.ImportCert).setOnClickListener((view) -> {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("application/x-x509-ca-cert");
+                CACertSelectSAFResult.launch(intent);
             });
-            FileControlMode = (getResources().getStringArray(R.array.control_mode_array))[0];
-            //FileControlModeSpinner注册完成
-            final Button ApplyChange = findViewById(R.id.button7);
-            ApplyChange.setOnClickListener(v -> {
-                onApplyChange();
-                this.finish();
-            });
-            //ApplyChangeButton注册完成
         }
-        private void onApplyChange()
-        {
-            if ("".equals(SelectedFileName))
-            {
-                Toast.makeText(File_Control_Activity.this,"文件名不能为空",Toast.LENGTH_LONG).show();
-                return;
-            }
-            File file = new File(getFilesDir().getPath()+"/ServerCACerts/"+SelectedFileName);
-            if (MainActivity.UseCACert != null && file.getName().equals(MainActivity.UseCACert.getName()) && MainActivity.isSession())
-            {
-                Toast.makeText(File_Control_Activity.this,"此文件正在使用中",Toast.LENGTH_LONG).show();
-                return;
-            }
-            if (getResources().getString(R.string.RenameText).equals(FileControlMode))
-            {
-                if ("".equals(((EditText)findViewById(R.id.RenameFileText)).getText().toString()))
-                {
-                    Toast.makeText(File_Control_Activity.this,"文件名不能为空",Toast.LENGTH_LONG).show();
-                    return;
-                }
-                for (String Filename : FileUtils.fileListOfServerCACerts(this))
-                {
-                    //判断新名称是否与现有名称重复
-                    if (new File(getFilesDir().getPath()+"/ServerCACerts/"+((EditText)findViewById(R.id.RenameFileText)).getText().toString())
-                            .getName().equals(new File(getFilesDir().getPath()+"/ServerCACerts/"+Filename).getName()))
-                    {
-                        Toast.makeText(File_Control_Activity.this,"文件名重复",Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                }
-                if (!file.renameTo(new File(getFilesDir().getPath()+"/ServerCACerts/"
-                        +((EditText)findViewById(R.id.RenameFileText)).getText().toString())))
-                {
-                    Toast.makeText(File_Control_Activity.this,"文件重命名失败",Toast.LENGTH_LONG).show();
-                }
-                else if (file.getPath().equals(MainActivity.UseCACert.getPath()))
-                {
-                    MainActivity.UseCACert = new File(getFilesDir().getPath()+"/ServerCACerts/"
-                            +((EditText)findViewById(R.id.RenameFileText)).getText().toString());
-                }
-            }
-            else if (getResources().getString(R.string.DeleteFileText).equals(FileControlMode))
-            {
-                if (!file.delete())
-                {
-                    Toast.makeText(File_Control_Activity.this,"文件删除失败",Toast.LENGTH_LONG).show();
-                }
-                //如果删除成功且删除的证书是正在使用的CA证书
-                else if (file.getPath().equals(MainActivity.UseCACert.getPath()))
-                {
-                    //剩余证书数量大于0
-                    if (FileUtils.fileListOfServerCACerts(this).length > 0)
-                    {
-                        //随机选择一个新证书
-                        MainActivity.UseCACert = new File(getFilesDir().getPath()+"/ServerCACerts/"+(FileUtils.fileListOfServerCACerts(this))[0]);
-                    }
-                    else
-                    {
-                        MainActivity.UseCACert = null;
-                    }
-                }
-            }
-            else if (getResources().getString(R.string.SetUsedKeyText).equals(FileControlMode))
-            {
-                MainActivity.UseCACert = file;
-            }
+
+        public String getServerName() {
+            return ServerName.getText().toString();
+        }
+
+        public String getIPAddress() {
+            return IPAddress.getText().toString();
+        }
+
+        public String getPort() {
+            return Port.getText().toString();
+        }
+
+        private String CaCert = "";
+
+        public void setCACertData(String caCertData) {
+            CaCert = caCertData;
+        }
+
+        public String getCaCertData() {
+            return CaCert;
         }
     }
-    private ActivityResultLauncher<Intent> StorageAccessFrameworkResultLauncher;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         //Super类调用
         super.onCreate(savedInstanceState);
         //设置显示界面
         setContentView(R.layout.setting_activity);
-        //开始读取bundle，进行第一次填充
-        Bundle bundle = this.getIntent().getExtras();
-        int ServerPort = 0;
-        String ServerAddr = null;
-        if (bundle != null) {
-            ServerPort = bundle.getInt("ServerPort");
-            ServerAddr = bundle.getString("ServerAddr");
-        }
-        //进行第一次填充
-        final EditText AddrEdit = findViewById(R.id.SettingIPAddress);
-        final EditText PortEdit = findViewById(R.id.SettingIPPort);
-        AddrEdit.setText(ServerAddr);
-        if (ServerPort != 0) {
-            PortEdit.setText(String.format(Locale.getDefault(),"%d", ServerPort));
-        }
-        //填充完成
-        //正在处理注册
-        findViewById(R.id.button5).setOnClickListener(this::OnSaveChange);
-        //完成1/4（保存与退出注册）
-        findViewById(R.id.button9).setOnClickListener(this::OnImportCACert);
-        //完成2/4（导入服务端CA证书注册）
-        findViewById(R.id.button10).setOnClickListener(this::OnManageCACert);
-        //完成3/4（服务端CA证书管理器注册）
-        StorageAccessFrameworkResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        // 刷新Spinner
+        RefreshServerSelecter();
+        Spinner ActionSelecter = findViewById(R.id.SelectControlMode);
+        ActionSelecter.setAdapter(new ArrayAdapter<CharSequence>(this, android.R.layout.simple_spinner_dropdown_item, new String[] {
+                "删除服务器",
+                "导出 CA 根证书",
+                "清除 Token",
+                "设为使用中的服务器"
+        }));
+        // 注册SAF Activity Result Launcher
+
+        // CA证书导入 SAF
+        ActivityResultLauncher<Intent> CACertSelectSAFResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() != Activity.RESULT_OK) {
+                Log.i(LogHead, "Can not select CA Cert, cancel");
                 return;
             }
-            {
-                Uri FileURI = null;
-                if (result.getData() != null) {
-                    FileURI = result.getData().getData();
-                }
-                if (FileURI == null)
-                    return;
-                Log.d(LogHead, "获取到的URI是：" + FileURI);
-                String DisplayName = GetURIDisplayName(FileURI);
-                if (DisplayName == null) {
-                    DisplayName = "RandomKeyName" + UUID.randomUUID() + UUID.randomUUID() + ".txt";
-                }
-                final Uri finalFileURI = FileURI;
-                Toast.makeText(SettingActivity.this, "文件名为：" + DisplayName, Toast.LENGTH_LONG).show();
-                if (!(new File(getFilesDir().getPath()+"/ServerCACerts").exists()))
-                {
-                    if (!(new File(getFilesDir().getPath()+"/ServerCACerts").mkdir()))
-                    {
-                        Toast.makeText(this,"无法成功创建文件夹",Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                }
-                File ServerCACerts = new File(getFilesDir().getPath()+"/ServerCACerts/"+DisplayName);
-                try {
-                    if (!(ServerCACerts.createNewFile()))
-                    {
-                        Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this,"无法成功创建文件",Toast.LENGTH_LONG).show();
-                    return;
-                }
-                Application.getInstance().getIOThreadPool().execute(() -> {
-                    try (BufferedReader FileInput = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(finalFileURI))); BufferedWriter FileOutput = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ServerCACerts)))) {
-                        String line;
-                        while ((line = FileInput.readLine()) != null) {
-                            FileOutput.write(line);
-                            FileOutput.newLine();//line是纯文本，没有回车，需要补上
-                            FileOutput.flush();
-                        }
-                        //写入完毕，将此文件设为使用
-                        MainActivity.UseCACert = ServerCACerts;
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
+
+            Uri FileURI;
+            if (result.getData() != null) {
+                FileURI = result.getData().getData();
+            } else
+                return;
+            if (FileURI == null)
+                return;
+
+            try {
+                addNewServerDialogContentInstance.setCACertData(FileUtils.readTxt(getContentResolver().openInputStream(FileURI), StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         });
-        // 开始注册StorageAccessFrameworkResultLauncher
-        // 注册完成
-    }
-    public void OnSaveChange(View view) {
-        //开始获取新ServerAddr和新ServerPort
-        final EditText AddrEdit = findViewById(R.id.SettingIPAddress);
-        final EditText PortEdit = findViewById(R.id.SettingIPPort);
-        //开始写入用户的新ServerAddr和新ServerPort
-        MainActivity.ServerAddr = AddrEdit.getText().toString();
-        try {
-            MainActivity.ServerPort = Integer.parseInt(PortEdit.getText().toString());
-        } catch (NumberFormatException e)
-        {
-            e.printStackTrace();
-        }
-        //退出此Activity
-        this.finish();
-    }
-    public void OnImportCACert(View v)
-    {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("application/x-x509-ca-cert");
-        StorageAccessFrameworkResultLauncher.launch(intent);
-    }
-    private String GetURIDisplayName(Uri uri)
-    {
-        try (Cursor cursor = getContentResolver()
-                .query(uri, null, null, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
 
-                try {
-                    String displayName = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
-                    Log.i(LogHead, "Display Name: " + displayName);
-                    return displayName;
-                } catch (IllegalArgumentException e) {
-                    new AlertDialog.Builder(this)
-                            .setTitle("由于出现错误")
-                            .setIcon(R.mipmap.ic_launcher_round)
-                            .setMessage("无法成功获取到文件名，正在使用随机文件名")
-                            .setPositiveButton("我知道了", (dialog, which) -> Log.d(LogHead, "已完成对用户的提示"))
-                            .create()
-                            .show();
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    public void OnManageCACert(View v)
-    {
-        //检测/ServerCACerts/是否存在
-        if (!(new File(getFilesDir().getPath()+"/ServerCACerts").exists()))
-        {
-            //不存在时创建文件
-            if (!(new File(getFilesDir().getPath()+"/ServerCACerts").mkdir()))
-            {
-                Toast.makeText(this,"文件夹创建失败",Toast.LENGTH_LONG).show();
+        // 写入数据到文件 SAF
+        ActivityResultLauncher<Intent> OnSAFWriteDataPermissionRequestSuccess = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() != Activity.RESULT_OK) {
+                Log.i(LogHead, "Can not request write permission, cancel");
                 return;
             }
+
+            Uri FileURI;
+            if (result.getData() != null) {
+                FileURI = result.getData().getData();
+            } else
+                return;
+            if (FileURI == null)
+                return;
+
+            try {
+                FileUtils.writeTxt(getContentResolver().openOutputStream(FileURI), SAFWriteData , StandardCharsets.UTF_8);
+                SAFWriteData = "";
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+
+        // 添加新服务器按钮功能注册
+        findViewById(R.id.addNewServer).setOnClickListener(v -> {
+            if (addNewServerDialogContentInstance != null)
+                return;
+            addNewServerDialogContentInstance = new addNewServerDialogContent(this, getLayoutInflater(), CACertSelectSAFResult);
+            new AlertDialog.Builder(this)
+                    .setTitle("添加服务器")
+                    .setView(addNewServerDialogContentInstance)
+                    .setCancelable(false)
+                    .setPositiveButton("确定", (dialog, which) -> {
+                        addNewServerDialogContent content = addNewServerDialogContentInstance;
+                        String CACertData = content.getCaCertData();
+                        String ServerName = content.getServerName();
+                        String IPAddress = content.getIPAddress();
+
+                        // 无效情况检测
+                        if (content.getPort().isEmpty()) {
+                            Toast.makeText(this, "一些参数似乎无效，请您检查", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        int Port = Integer.parseInt(content.getPort());
+                        // 无效情况检测
+                        if (CACertData.isEmpty() || ServerName.isEmpty() || IPAddress.isEmpty() || Port <= 0 || Port > 65535) {
+                            Toast.makeText(this, "一些参数似乎无效，请您检查", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        // 准备写入
+                        File ServerList = new File(getFilesDir(),"servers.json");
+                        Gson gson = new Gson();
+
+                        // 准备内容
+                        SavedServer.Server newServer = new SavedServer.Server();
+                        newServer.setServerName(ServerName);
+                        newServer.setX509CertContent(CACertData);
+                        newServer.setServerLoginToken("");
+                        newServer.setServerAddress(IPAddress);
+                        newServer.setServerPort(Port);
+                        newServer.setIsUsingServer(true);
+
+                        // 开始写入
+                        try {
+                            // 如果保存的服务端文件不存在，创建文件后写入
+                            if (!ServerList.exists()) {
+                                if (ServerList.createNewFile())
+                                {
+                                    SavedServer savedServer = new SavedServer();
+                                    savedServer.setServers(new ArrayList<>());
+                                    savedServer.getServers().add(newServer);
+                                    FileUtils.writeTxt(ServerList, gson.toJson(savedServer), StandardCharsets.UTF_8);
+                                }
+                                else
+                                    throw new RuntimeException("Create File Failed!");
+                            }
+                            // 如果已存在，获取文件信息后写入
+                            else {
+                                String SavedServerContent = FileUtils.readTxt(ServerList, StandardCharsets.UTF_8);
+                                SavedServer savedServer = gson.fromJson(SavedServerContent, SavedServer.class);
+                                for (SavedServer.Server server : savedServer.getServers())
+                                {
+                                    if (newServer.getServerName().equals(server.getServerName()))
+                                    {
+                                        Toast.makeText(this, "已经有重名服务器添加过了!", Toast.LENGTH_SHORT).show();
+                                        return;
+                                    }
+                                    if (server.isIsUsingServer())
+                                    {
+                                        server.setIsUsingServer(false);
+                                    }
+                                }
+                                savedServer.getServers().add(newServer);
+                                FileUtils.writeTxt(ServerList, gson.toJson(savedServer), StandardCharsets.UTF_8);
+                            }
+
+                            MainActivity.UseServer = newServer;
+                        } catch (Throwable t) {
+                            t.printStackTrace();
+                            Toast.makeText(this, "写入文件时出错", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        Toast.makeText(this, "导入成功!", Toast.LENGTH_SHORT).show();
+                        RefreshServerSelecter();
+                    })
+                    .setOnDismissListener((dialog) -> addNewServerDialogContentInstance = null)
+                    .setNegativeButton("取消添加", (dialog, which) -> dialog.dismiss())
+                    .show();
+        });
+        // 添加执行操作按钮功能注册
+        findViewById(R.id.ExecuteServerControl).setOnClickListener(v -> {
+            // 读取用户选择
+            String SelectAction = (String) ActionSelecter.getSelectedItem();
+            String SelectServerName = (String) ((Spinner) findViewById(R.id.SelectServer)).getSelectedItem();
+
+            // 读取文件数据
+            SavedServer.Server SelectServer = null;
+            SavedServer savedServers;
+            Gson gson = new Gson();
+            File servers = new File(getFilesDir(),"servers.json");
+
+            try {
+                savedServers = gson.fromJson(FileUtils.readTxt(servers, StandardCharsets.UTF_8), SavedServer.class);
+                for (SavedServer.Server server : savedServers.getServers())
+                {
+                    if (server.getServerName().equals(SelectServerName)) {
+                        SelectServer = server;
+                        break;
+                    }
+                }
+                if (SelectServer == null)
+                    return;
+            } catch (Throwable t) {
+                t.printStackTrace();
+                return;
+            }
+
+            if (SelectServer.isIsUsingServer())
+            {
+                MainActivity.UseServer = SelectServer;
+            }
+
+            // 执行操作
+            switch (SelectAction)
+            {
+                case "删除服务器": {
+                    savedServers.getServers().remove(SelectServer);
+                    if (SelectServer.isIsUsingServer())
+                    {
+                        MainActivity.UseServer = null;
+                    }
+                    break;
+                }
+
+                case "导出 CA 根证书": {
+                    SAFWriteData = SelectServer.getX509CertContent();
+
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("application/x-x509-ca-cert");
+                    intent.putExtra(Intent.EXTRA_TITLE, "CACert.crt");
+                    OnSAFWriteDataPermissionRequestSuccess.launch(intent);
+                    break;
+                }
+
+                case "清除 Token" : {
+                    SelectServer.setServerLoginToken("");
+                    break;
+                }
+
+                case "设为使用中的服务器" : {
+                    for (SavedServer.Server server : savedServers.getServers())
+                    {
+                        server.setIsUsingServer(false);
+                    }
+                    SelectServer.setIsUsingServer(true);
+                    MainActivity.UseServer = SelectServer;
+                    break;
+                }
+
+                default: {
+                    Toast.makeText(this, "未知的操作!", Toast.LENGTH_SHORT).show();
+                    break;
+                }
+            }
+
+            // 写入
+            try {
+                FileUtils.writeTxt(servers, gson.toJson(savedServers), StandardCharsets.UTF_8);
+            } catch (Throwable t)
+            {
+                t.printStackTrace();
+            }
+            RefreshServerSelecter();
+        });
+        // 注册完成
+    }
+
+    private void RefreshServerSelecter() {
+        // 获取服务器列表
+        List<String> ServerNames = new ArrayList<>();
+        try {
+            File servers = new File(getFilesDir(),"servers.json");
+            if (!servers.exists())
+                return;
+            if (servers.length() == 0)
+            {
+                servers.delete();
+                return;
+            }
+            SavedServer savedServers = new Gson().fromJson(FileUtils.readTxt(servers, StandardCharsets.UTF_8), SavedServer.class);
+            for (SavedServer.Server server : savedServers.getServers())
+            {
+                ServerNames.add(server.getServerName());
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
-        //开始创建新Activity过程
-        Intent intent=new Intent();
-        intent.setClass(SettingActivity.this, File_Control_Activity.class);
-        //开始向新Activity发送文件列表，以便填充到编辑框
-        Bundle bundle = new Bundle();
-        bundle.putStringArray("FileNames",FileUtils.fileListOfServerCACerts(this));
-        //从Bundle put到intent
-        intent.putExtras(bundle);
-        //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶
-        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        //启动Activity
-        startActivity(intent);
+        // 获取服务器选择框
+        Spinner servers = findViewById(R.id.SelectServer);
+        servers.setAdapter(new ArrayAdapter<CharSequence>(this, android.R.layout.simple_spinner_dropdown_item, ServerNames.toArray(new String[0])));
     }
 }

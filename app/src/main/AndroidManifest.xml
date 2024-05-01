@@ -29,9 +29,5 @@
             android:label="@string/SettingActivityLabel"
             >
         </activity>
-        <activity
-            android:name=".SettingActivity$File_Control_Activity"
-            android:exported="false"
-            android:label="@string/FileControlActivityLabel" />
     </application>
 </manifest>

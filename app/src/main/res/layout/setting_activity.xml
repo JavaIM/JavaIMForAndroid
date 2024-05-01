@@ -6,76 +6,92 @@
     android:layout_height="match_parent"
     tools:context=".SettingActivity">
 
-    <EditText
-        android:id="@+id/SettingIPAddress"
-        android:layout_width="197dp"
-        android:layout_height="43dp"
-        android:layout_marginTop="95dp"
-        android:ems="10"
-        android:inputType="textPersonName"
-        app:layout_constraintStart_toEndOf="@+id/textView"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <EditText
-        android:id="@+id/SettingIPPort"
-        android:layout_width="197dp"
-        android:layout_height="43dp"
-        android:layout_marginTop="160dp"
-        android:ems="10"
-        android:inputType="number"
-        android:singleLine="true"
-        app:layout_constraintStart_toEndOf="@+id/textView2"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="102dp"
-        android:text="@string/IPAddress"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="361dp"
+        android:layout_height="359dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.5">
 
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="71dp"
-        android:layout_marginTop="171dp"
-        android:text="@string/Port"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <TextView
+            android:id="@+id/tips1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="选择操作的已保存的服务器"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/button5"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="138dp"
-        android:layout_marginTop="225dp"
-        android:text="@string/SaveIpAddressChangeAndSavePortChange"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <Spinner
+            android:id="@+id/SelectServer"
+            android:layout_width="334dp"
+            android:layout_height="48dp"
+            app:layout_constraintBottom_toTopOf="@+id/tips3"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tips1"
+            app:layout_constraintVertical_bias="0.5" />
 
-    <Button
-        android:id="@+id/button9"
-        android:layout_width="112dp"
-        android:layout_height="64dp"
-        android:layout_marginStart="138dp"
-        android:layout_marginTop="303dp"
-        android:text="@string/ImportServerCACerts"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <Button
+            android:id="@+id/ExecuteServerControl"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="19dp"
+            android:layout_marginEnd="16dp"
+            android:text="执行操作"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/SelectControlMode" />
 
-    <Button
-        android:id="@+id/button10"
-        android:layout_width="132dp"
-        android:layout_height="58dp"
-        android:layout_centerHorizontal="true"
-        android:layout_marginStart="128dp"
-        android:layout_marginTop="392dp"
-        android:text="@string/ManageImportedServerCACerts"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <TextView
+            android:id="@+id/tips2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="23dp"
+            android:text="选择操作模式"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.5" />
+
+        <Spinner
+            android:id="@+id/SelectControlMode"
+            android:layout_width="334dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="14dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tips2" />
+
+        <TextView
+            android:id="@+id/tips3"
+            android:layout_width="148dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="29dp"
+            android:text="没有正在寻找的服务器?快来添加一个吧!"
+            app:layout_constraintBottom_toTopOf="@+id/tips2"
+            app:layout_constraintEnd_toStartOf="@+id/addNewServer"
+            app:layout_constraintTop_toBottomOf="@+id/SelectServer"
+            app:layout_constraintVertical_bias="0.5" />
+
+        <Button
+            android:id="@+id/addNewServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="25dp"
+            android:layout_marginEnd="16dp"
+            android:text="添加服务器"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/SelectServer" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

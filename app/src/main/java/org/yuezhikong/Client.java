@@ -124,9 +124,8 @@ public abstract class Client {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            File token = new File("./token.txt");
             LoginProtocol loginPacket;
-            if (token.canRead() && token.length() != 0)
+            if (!getToken().isEmpty())
             {
                 LoginProtocol.LoginPacketHeadBean headBean = new LoginProtocol.LoginPacketHeadBean();
                 headBean.setType("token");

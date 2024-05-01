@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/tips4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="填写要保存的服务器名"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/ServerNameInput"
+        android:layout_width="255dp"
+        android:layout_height="53dp"
+        android:layout_marginStart="43dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginEnd="5dp"
+        android:ems="10"
+        android:inputType="text"
+        android:text="服务器名"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tips4" />
+
+    <Button
+        android:id="@+id/ImportCert"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="导入证书"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ServerNameInput" />
+
+    <TextView
+        android:id="@+id/tips6"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="43dp"
+        android:layout_marginTop="25dp"
+        android:text="IP地址："
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ImportCert" />
+
+    <TextView
+        android:id="@+id/tips7"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="43dp"
+        android:layout_marginTop="40dp"
+        android:text="端口："
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tips6" />
+
+    <EditText
+        android:id="@+id/IPAddress"
+        android:layout_width="170dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginEnd="1dp"
+        android:ems="10"
+        android:inputType="text"
+        android:text=""
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/tips6"
+        app:layout_constraintTop_toBottomOf="@id/ImportCert" />
+
+    <EditText
+        android:id="@+id/Port"
+        android:layout_width="108dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="28dp"
+        android:layout_marginTop="8dp"
+        android:ems="5"
+        android:inputType="number"
+        android:maxLength="5"
+        android:text=""
+        app:layout_constraintStart_toEndOf="@id/tips7"
+        app:layout_constraintTop_toBottomOf="@id/IPAddress" />
+</androidx.constraintlayout.widget.ConstraintLayout>

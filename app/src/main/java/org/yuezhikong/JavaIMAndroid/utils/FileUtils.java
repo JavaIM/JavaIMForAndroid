@@ -1,10 +1,8 @@
 package org.yuezhikong.JavaIMAndroid.utils;
 
-import android.content.Context;
-
 import androidx.annotation.NonNull;
 
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Contract;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -12,12 +10,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FileUtils {
     @NonNull
@@ -36,21 +34,27 @@ public class FileUtils {
         return sb;
     }
     @NonNull
-    public static StringBuilder readTxt(File file,Charset charset) throws IOException {
+    @Contract(pure = true)
+    public static String readTxt(File file,Charset charset) throws IOException {
+        return readTxt(new FileInputStream(file), charset);
+    }
+
+    public static String readTxt(InputStream is, Charset charset) throws IOException {
         StringBuilder sb = new StringBuilder();
-        InputStreamReader isr = new InputStreamReader(new FileInputStream(file), charset);
+        InputStreamReader isr = new InputStreamReader(is, charset);
         BufferedReader br = new BufferedReader(isr);
-        String mimeTypeLine ;
+        String mimeTypeLine;
         sb.delete(0,sb.length());
         while ((mimeTypeLine = br.readLine()) != null) {
             sb.append(mimeTypeLine).append("\n");
         }
         br.close();
         isr.close();
-        return sb;
+        return sb.toString();
     }
+
     @NonNull
-    public static StringBuilder readTxt(File file) throws IOException {
+    public static String readTxt(File file) throws IOException {
         return readTxt(file,StandardCharsets.UTF_8);
     }
     public static void writeTxt(String path,String Text) throws IOException {
@@ -76,49 +80,13 @@ public class FileUtils {
                 CreateDirectory(file.getParentFile());
             file.createNewFile();
         }
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file),charset));
+        writeTxt(new FileOutputStream(file),Text,charset);
+    }
+
+    public static void writeTxt(OutputStream is, String Text, Charset charset) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(is,charset));
         writer.write(Text);
         writer.newLine();
         writer.close();
-    }
-
-    @NonNull
-    public static String[] fileListOfServerCACerts(@NotNull Context context)
-    {
-        File ServerCACertsDirectory = new File (context.getFilesDir().getPath()+"/ServerCACerts/");
-        if (!(ServerCACertsDirectory.exists()))
-        {
-            if (!(ServerCACertsDirectory.mkdir()))
-            {
-                return new String[0];
-            }
-            fileListOfServerCACerts(context);
-        }
-        if (ServerCACertsDirectory.isDirectory())
-        {
-            List<String> returnFileList = new ArrayList<>();
-            String[] FileList = ServerCACertsDirectory.list();
-            if (FileList == null)
-            {
-                return new String[0];
-            }
-            for (String file : FileList)
-            {
-                File RequestFile = new File(context.getFilesDir().getPath()+"/ServerCACerts/"+file);
-                if (RequestFile.exists() && RequestFile.isFile())
-                {
-                    returnFileList.add(file);
-                }
-            }
-            return returnFileList.toArray(new String[0]);
-        }
-        else
-        {
-            if (!(ServerCACertsDirectory.delete()) || !(ServerCACertsDirectory.mkdir()))
-            {
-                return new String[0];
-            }
-            return fileListOfServerCACerts(context);
-        }
     }
 }

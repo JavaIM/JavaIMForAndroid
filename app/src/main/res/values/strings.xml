@@ -16,8 +16,4 @@
     <string name="ChangeToSettingActivity">前往设置页面</string>
     <string name="SaveIpAddressChangeAndSavePortChange">保存并退出</string>
     <string name="ClearSocketDisplay">清屏</string>
-    <string name="ImportServerCACerts">导入服务端CA证书</string>
-    <string name="ManageImportedServerCACerts">管理已导入的CA证书</string>
-    <string name="UseCACertTip">正在使用的CA证书：%s，可在设置中修改</string>
-    <string name="FileControlActivityLabel">文件管理器</string>
 </resources>

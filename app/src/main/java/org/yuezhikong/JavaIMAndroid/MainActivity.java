@@ -7,6 +7,7 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.method.ScrollingMovementMethod;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
@@ -14,8 +15,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,39 +28,26 @@ import org.yuezhikong.JavaIMAndroid.utils.NetworkHelper;
 import org.yuezhikong.Protocol.GeneralProtocol;
 import org.yuezhikong.Protocol.NormalProtocol;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
+    public static SavedServer.Server UseServer;
     static boolean Session = false;
     private boolean StartComplete = false;
     private AndroidClient client;
-
-    public static File UseCACert;
-
-    /**
-     * 获取会话状态
-     * <p>就是是否已经连接服务器</p>
-     * @return true:已连接 false:未连接
-     */
-    public static boolean isSession() {
-        return Session;
-    }
-
-    public static String ServerAddr = "";
-    public static int ServerPort = 0;
 
     /**
      * 打印到聊天日志(支持富文本)
@@ -98,36 +84,54 @@ public class MainActivity extends AppCompatActivity {
     }
     public void ClearScreen() {
         runOnUiThread(()-> ((TextView)findViewById(R.id.ChatLog)).setText(""));
+        runOnUiThread(()-> ((TextView)findViewById(R.id.ChatLog)).setText(""));
     }
-    private ActivityResultLauncher<Intent> SettingActivityResultLauncher;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        SettingActivityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            final TextView DisplayUseCACertsTextView = findViewById(R.id.DisplayUseCACert);
-            if (UseCACert == null)
-            {
-                DisplayUseCACertsTextView.setText("目前没有存在的CA证书，可在设置中导入");
-            }
-            else {
-                DisplayUseCACertsTextView.setText(String.format(getResources().getString(R.string.UseCACertTip), UseCACert.getName()));
-            }
-        });
         ((TextView) findViewById(R.id.ChatLog)).setMovementMethod(ScrollingMovementMethod.getInstance());
         findViewById(R.id.button4).setOnClickListener(this::ChangeToSettingActivity);
         findViewById(R.id.button8).setOnClickListener(this::Send);
         findViewById(R.id.button2).setOnClickListener(this::Connect);
         findViewById(R.id.button3).setOnClickListener(this::Disconnect);
         findViewById(R.id.button6).setOnClickListener(this::ClearScreen);
-        final TextView DisplayUseCACertsTextView = findViewById(R.id.DisplayUseCACert);
-        if (FileUtils.fileListOfServerCACerts(this).length == 0) {
-            UseCACert = null;
-            DisplayUseCACertsTextView.setText("目前没有存在的CA证书，可在设置中导入");
-        } else {
-            UseCACert = new File(getFilesDir().getPath() + "/ServerCACerts/" + (FileUtils.fileListOfServerCACerts(this)[0]));
-            DisplayUseCACertsTextView.setText(String.format(getResources().getString(R.string.UseCACertTip), UseCACert.getName()));
-        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        new Thread(() -> {
+            ((Runnable) () -> {
+                File servers = new File(getFilesDir(),"servers.json");
+
+                SavedServer savedServers;
+                Gson gson = new Gson();
+                try {
+                    savedServers = gson.fromJson(FileUtils.readTxt(servers, StandardCharsets.UTF_8), SavedServer.class);
+                } catch (Throwable t) {
+                    return;
+                }
+                for (SavedServer.Server server : savedServers.getServers())
+                {
+                    if (server.isIsUsingServer())
+                    {
+                        MainActivity.UseServer = server;
+                        return;
+                    }
+                }
+            }).run();
+            runOnUiThread(() -> {
+                final TextView DisplayUseCACertsTextView = findViewById(R.id.DisplayUseCACert);
+                if (UseServer == null) {
+                    DisplayUseCACertsTextView.setText("目前没有使用的服务器，可在设置中选择/导入");
+                } else {
+                    DisplayUseCACertsTextView.setText(String.format("当前使用的服务器:%s",UseServer.getServerName()));
+                    if (!UseServer.getServerLoginToken().isEmpty() && !Session)
+                        TryTokenLogin(UseServer.getServerAddress(), UseServer.getServerPort());
+                }
+            });
+        }, "Start process Thread").start();
     }
 
     @Override
@@ -143,38 +147,62 @@ public class MainActivity extends AppCompatActivity {
         }
         if (NetworkHelper.isCellular(this))
             Toast.makeText(this, "您正在使用移动数据网络，请注意流量消耗", Toast.LENGTH_SHORT).show();
-        if (UseCACert == null)
+
+        if (UseServer == null)
+        {
+            Toast.makeText(this, "没有正在使用的服务器", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (UseServer.getX509CertContent() == null || UseServer.getX509CertContent().isEmpty())
         {
             ErrorOutputToUserScreen(R.string.Error5);
             return;
         }
-        String IPAddress = ServerAddr;
+        String IPAddress = UseServer.getServerAddress();
         if (IPAddress.isEmpty())
         {
             ErrorOutputToUserScreen(R.string.Error1);
             return;
         }
-        int port = ServerPort;
+        int port = UseServer.getServerPort();
         if (port <= 0 || port > 65535)
         {
             ErrorOutputToUserScreen(R.string.Error2);
             return;
         }
+        if (!UseServer.getServerLoginToken().isEmpty())
+        {
+            TryTokenLogin(IPAddress, port);
+            return;
+        }
         final EditText UserName = new EditText(this);
         new AlertDialog.Builder(this)
                 .setTitle("请输入用户名").setView(UserName)
+                .setNegativeButton("取消启动", (dialog,which) -> dialog.cancel())
                 .setPositiveButton("确定", (dialog, which) -> {
                     // 用户名
                     String Username = UserName.getText().toString();
                     EditText Passwd = new EditText(this);
                     new AlertDialog.Builder(this)
                             .setTitle("请输入密码").setView(Passwd)
+                            .setNegativeButton("取消启动", (Dialog,Which) -> Dialog.cancel())
                             .setPositiveButton("确定",(Dialog,Which) -> {
                                 String passwd = Passwd.getText().toString();
-                                ConnectToServer0(ServerAddr,ServerPort,UseCACert,Username,passwd);
+                                ConnectToServer0(IPAddress,port,UseServer.getX509CertContent(),Username,passwd);
                             }).show();
                 }).show();
 
+    }
+
+    private void TryTokenLogin(String IPAddress, int port) {
+        if (Session)
+        {
+            Toast.makeText(this, "客户端正在运行中", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Toast.makeText(this, "正在自动登录,如果登录异常,请前往设置清除token", Toast.LENGTH_SHORT).show();
+        ConnectToServer0(IPAddress,port,UseServer.getX509CertContent(),"","");
+        OutputToChatLog(getRichText("自动登录应该已经完成,如果登录异常,请前往设置清除token",Color.parseColor("#00FF00")));
     }
 
     private class AndroidClient extends Client
@@ -250,13 +278,36 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected String getToken() {
-            // 暂不支持
-            return "";
+            return UseServer.getServerLoginToken();
         }
 
         @Override
         protected void setToken(String newToken) {
-            // 暂不支持
+            Gson gson = new Gson();
+            UseServer.setServerLoginToken(newToken);
+            File ServerList = new File(getFilesDir(),"servers.json");
+            try {
+                SavedServer savedServer = gson.fromJson(FileUtils.readTxt(ServerList, StandardCharsets.UTF_8), SavedServer.class);
+                for (SavedServer.Server server : savedServer.getServers())
+                {
+                    if (server.getServerName().equals(UseServer.getServerName()))
+                    {
+                        server.setServerLoginToken(newToken);
+                        break;
+                    }
+                }
+                FileUtils.writeTxt(ServerList, gson.toJson(savedServer), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+
+                ErrorPrint("自动登录Token写入失败");
+                ErrorPrint(sw.toString());
+                pw.close();
+
+                Toast.makeText(MainActivity.this, "自动登录Token写入失败!", Toast.LENGTH_SHORT).show();
+            }
         }
 
         @Override
@@ -298,7 +349,7 @@ public class MainActivity extends AppCompatActivity {
      * @param UserName 用户名
      * @param Passwd 密码
      */
-    private void ConnectToServer0(String ServerAddress, int Port, File ServerCACert , String UserName, String Passwd)
+    private void ConnectToServer0(String ServerAddress, int Port, String ServerCACert , String UserName, String Passwd)
     {
         if (!Session)
         {
@@ -332,25 +383,36 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             X509Certificate ServerCARootCert;
-            try (FileInputStream stream = new FileInputStream(ServerCACert)){
+            try (ByteArrayInputStream stream = new ByteArrayInputStream(ServerCACert.getBytes(StandardCharsets.UTF_8))){
                 CertificateFactory factory = CertificateFactory.getInstance("X.509","BC");
                 ServerCARootCert = (X509Certificate) factory.generateCertificate(stream);
             } catch (CertificateException | NoSuchProviderException | IOException e) {
-                throw new RuntimeException("Failed to open X.509 CA Cert & X.509 RSA Private key, Permission denied?",e);
+                Session = false;
+                StartComplete = false;
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+
+                OutputToChatLog(getRichText(sw.toString(), Color.RED));
+                Log.e("JavaIM Client", sw.toString());
+                UserNetworkRequestThreadPool.shutdownNow();
+                group.interrupt();
+                return;
             }
             new Thread(group,"Client Thread")
             {
                 @Override
                 public void run() {
                     this.setUncaughtExceptionHandler((thread,throwable) -> {
-                        throwable.printStackTrace();
-                        OutputToChatLog("客户端已经终止了运行，因为出现了异常");
+                        OutputToChatLog(getRichText("客户端已经终止了运行，因为出现了异常", Color.parseColor("#00CCFF")));
+                        Session = false;
+                        StartComplete = false;
                         StringWriter sw = new StringWriter();
                         PrintWriter pw = new PrintWriter(sw);
                         throwable.printStackTrace(pw);
-                        OutputToChatLog(sw.toString());
-                        Session = false;
-                        StartComplete = false;
+                        OutputToChatLog(getRichText(sw.toString(),Color.RED));
+                        Log.e("JavaIM Client",sw.toString());
+                        pw.close();
                         UserNetworkRequestThreadPool.shutdownNow();
                         group.interrupt();
                     });
@@ -404,31 +466,23 @@ public class MainActivity extends AppCompatActivity {
     public void Disconnect(View view) {
         if (Session)
         {
-            Session = false;
-            client.disconnect();
+            if (StartComplete)
+                client.disconnect();
+            else {
+                Toast.makeText(this, "客户端启动尚未完全完成，正在强制终止", Toast.LENGTH_SHORT).show();
+                client.getClientThreadGroup().interrupt();
+                Session = false;
+            }
         }
     }
     public void ChangeToSettingActivity(View view) {
-        String tmpServerAddr;
-        int tmpServerPort;
-        //处理当前已经记录的Addr和Port
-        tmpServerAddr = Objects.requireNonNullElse(ServerAddr, "");
-        tmpServerPort = ServerPort;
         //开始创建新Activity过程
         Intent intent=new Intent();
         intent.setClass(MainActivity.this, SettingActivity.class);
-        //开始向新Activity发送老Addr和Port，以便填充到编辑框
-        Bundle bundle = new Bundle();
-        bundle.putString("ServerAddr",tmpServerAddr);
-        bundle.putInt("ServerPort",tmpServerPort);
-
-
-        //从Bundle put到intent
-        intent.putExtras(bundle);
         //设置 如果这个activity已经启动了，就不产生新的activity，而只是把这个activity实例加到栈顶
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         //启动Activity
-        SettingActivityResultLauncher.launch(intent);
+        startActivity(intent);
     }
 
 }
