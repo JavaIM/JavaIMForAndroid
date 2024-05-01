@@ -140,14 +140,6 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
     public void Connect(View view) {
-        if (!NetworkHelper.isNetworkCanUse(this))
-        {
-            Toast.makeText(this, "当前无网络可用!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (NetworkHelper.isCellular(this))
-            Toast.makeText(this, "您正在使用移动数据网络，请注意流量消耗", Toast.LENGTH_SHORT).show();
-
         if (UseServer == null)
         {
             Toast.makeText(this, "没有正在使用的服务器", Toast.LENGTH_SHORT).show();
@@ -351,6 +343,13 @@ public class MainActivity extends AppCompatActivity {
      */
     private void ConnectToServer0(String ServerAddress, int Port, String ServerCACert , String UserName, String Passwd)
     {
+        if (!NetworkHelper.isNetworkCanUse(this))
+        {
+            Toast.makeText(this, "当前无网络可用!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (NetworkHelper.isCellular(this))
+            Toast.makeText(this, "您正在使用移动数据网络，请注意流量消耗", Toast.LENGTH_SHORT).show();
         if (!Session)
         {
             ClearScreen();
