@@ -13,11 +13,11 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.ReferenceCountUtil;
+import org.yuezhikong.Protocol.ChatProtocol;
 import org.yuezhikong.Protocol.GeneralProtocol;
 import org.yuezhikong.Protocol.LoginProtocol;
-import org.yuezhikong.Protocol.NormalProtocol;
+import org.yuezhikong.Protocol.SystemProtocol;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.concurrent.ThreadFactory;
 
 public abstract class Client {
-    protected static final int protocolVersion = 9;//协议版本
+    protected static final int protocolVersion = 10;//协议版本
 
     private String UserName = "";//用户名
     private String Passwd = "";//密码
@@ -106,6 +106,10 @@ public abstract class Client {
         }
     }
 
+    /**
+     * 获取Netty工作线程的线程工厂
+     * @return 线程工厂
+     */
     protected abstract ThreadFactory getWorkerThreadFactory();
 
     private class ClientHandler extends ChannelInboundHandlerAdapter
@@ -120,6 +124,7 @@ public abstract class Client {
 
             ErrorPrint("出现未捕获的错误");
             ErrorPrint(sw.toString());
+            disconnect();
         }
 
         @Override
@@ -161,31 +166,32 @@ public abstract class Client {
             ctx.writeAndFlush(gson.toJson(generalProtocol));
         }
 
-        private void HandleNormalProtocol(ChannelHandlerContext ctx, String protocol) throws IOException {
-            NormalProtocol normalProtocol = gson.fromJson(protocol, NormalProtocol.class);
-            switch (normalProtocol.getType())
+        private void HandleSystemProtocol(ChannelHandlerContext ctx, String protocol) throws IOException {
+
+            SystemProtocol systemProtocol = gson.fromJson(protocol, SystemProtocol.class);
+            switch (systemProtocol.getType())
             {
                 case "Error": {
-                    NormalPrintf("连接出现错误，服务端发送的错误代码为 %s%n",normalProtocol.getMessage());
+                    NormalPrintf("连接出现错误，服务端发送的错误代码为 %s%n", systemProtocol.getMessage());
                     break;
                 }
-                case "Chat" : {
-                    NormalPrint(normalProtocol.getMessage());
+                case "DisplayMessage" : {
+                    DisplayMessage(systemProtocol.getMessage());
                     break;
                 }
                 case "Login" : {
-                    if ("Authentication Failed".equals(normalProtocol.getMessage()))
+                    if ("Authentication Failed".equals(systemProtocol.getMessage()))
                     {
                         NormalPrint("登录失败，token已过期或用户名、密码错误");
                         ctx.channel().close();
-                    } else if ("Already Logged".equals(normalProtocol.getMessage()))
+                    } else if ("Already Logged".equals(systemProtocol.getMessage()))
                         NormalPrint("操作失败，已经登录过了");
                     else {
-                        if ("Success".equals(normalProtocol.getMessage())) {
+                        if ("Success".equals(systemProtocol.getMessage())) {
                             NormalPrint("登录成功!");
                         } else {
-                            NormalPrintf("登录成功! 新的 Token 为 %s%n", normalProtocol.getMessage());
-                            setToken(normalProtocol.getMessage());
+                            NormalPrintf("登录成功! 新的 Token 为 %s%n", systemProtocol.getMessage());
+                            setToken(systemProtocol.getMessage());
                         }
                         onClientLogin();
                     }
@@ -211,9 +217,14 @@ public abstract class Client {
                 }
                 switch (protocol.getProtocolName())
                 {
-                    case "NormalProtocol":
+                    case "SystemProtocol":
                     {
-                        HandleNormalProtocol(ctx,protocol.getProtocolData());
+                        HandleSystemProtocol(ctx,protocol.getProtocolData());
+                        break;
+                    }
+                    case "ChatProtocol" : {
+                        ChatProtocol chatProtocol = gson.fromJson(protocol.getProtocolData(), ChatProtocol.class);
+                        DisplayChatMessage(chatProtocol.getSourceUserName(), chatProtocol.getMessage());
                         break;
                     }
                     case "TransferProtocol": {
@@ -221,7 +232,7 @@ public abstract class Client {
                         break;
                     }
                     default: {
-                        ErrorPrintf("服务器发送的协议为 %s 但是当前客户端不支持此版本%n", protocol.getProtocolName());
+                        ErrorPrintf("服务器发送的协议为 %s 但是当前客户端不支持此协议%n", protocol.getProtocolName());
                         break;
                     }
                 }
@@ -237,6 +248,19 @@ public abstract class Client {
             }
         }
     }
+
+    /**
+     * 显示聊天消息
+     * @param sourceUserName 消息来源用户
+     * @param message 消息
+     */
+    protected abstract void DisplayChatMessage(String sourceUserName, String message);
+
+    /**
+     * 显示消息
+     * @param message 消息
+     */
+    protected abstract void DisplayMessage(String message);
 
 
     /**

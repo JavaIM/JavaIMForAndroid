@@ -25,8 +25,8 @@ import org.jetbrains.annotations.NotNull;
 import org.yuezhikong.Client;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 import org.yuezhikong.JavaIMAndroid.utils.NetworkHelper;
+import org.yuezhikong.Protocol.ChatProtocol;
 import org.yuezhikong.Protocol.GeneralProtocol;
-import org.yuezhikong.Protocol.NormalProtocol;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -38,6 +38,7 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -66,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
      * @param msg 消息
      * @param targetTextView 目标textview
      */
-    private void RichTextTextViewWrite(CharSequence msg, TextView targetTextView)
+    private void RichTextTextViewWrite(CharSequence msg, @NonNull TextView targetTextView)
     {
         if (targetTextView.getText() == null || targetTextView.getText().equals("") || !(targetTextView.getText() instanceof SpannableString))
             targetTextView.setText(new SpannableString(""));
@@ -230,6 +231,21 @@ public class MainActivity extends AppCompatActivity {
             };
         }
 
+        @Override
+        protected void DisplayChatMessage(String sourceUserName, String message) {
+            NormalPrint(String.format("[%s] [%s]:%s",
+                    SimpleDateFormat.getDateInstance().format(System.currentTimeMillis()),
+                    sourceUserName,
+                    message));
+        }
+
+        @Override
+        protected void DisplayMessage(String message) {
+            NormalPrint(String.format("[%s] [系统消息]:%s",
+                    SimpleDateFormat.getDateInstance().format(System.currentTimeMillis()),
+                    message));
+        }
+
         private final Gson publicGson = new Gson();
 
         public Gson getGson() {
@@ -388,6 +404,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (CertificateException | NoSuchProviderException | IOException e) {
                 Session = false;
                 StartComplete = false;
+
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);
                 e.printStackTrace(pw);
@@ -436,6 +453,7 @@ public class MainActivity extends AppCompatActivity {
     public void Send(View view) {
         final EditText UserMessageText = findViewById (R.id.UserSendMessage);
         String UserMessage = UserMessageText.getText().toString();
+        UserMessageText.setText("");
         if (!Session)
         {
             ErrorOutputToUserScreen(R.string.Error6);
@@ -445,14 +463,13 @@ public class MainActivity extends AppCompatActivity {
             if (StartComplete)
             {
                 UserNetworkRequestThreadPool.execute(() -> {
-                    NormalProtocol userInput = new NormalProtocol();
-                    userInput.setType("Chat");
+                    ChatProtocol userInput = new ChatProtocol();
                     userInput.setMessage(UserMessage);
 
                     GeneralProtocol generalProtocol = new GeneralProtocol();
                     generalProtocol.setProtocolData(client.getGson().toJson(userInput));
                     generalProtocol.setProtocolVersion(client.getProtocolVersion());
-                    generalProtocol.setProtocolName("NormalProtocol");
+                    generalProtocol.setProtocolName("ChatProtocol");
 
                     client.SendData(client.getGson().toJson(generalProtocol));
                 });
