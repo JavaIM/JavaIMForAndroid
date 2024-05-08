@@ -5,10 +5,15 @@
 
 version: 2
 updates:
+    open-pull-requests-limit: 20
   - package-ecosystem: "gradle" # See documentation for possible values
     directories:
       - "/"
       - "/app"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 20
+  - package-ecosystem: "github-actions" # See documentation for possible values
+    directories:
+      - "/"
+    schedule:
+      interval: "daily"
