@@ -7,6 +7,7 @@ android {
 
     packagingOptions {
         exclude'META-INF/INDEX.LIST'
+        exclude'META-INF/versions/9/OSGI-INF/MANIFEST.MF'
         exclude'META-INF/io.netty.versions.properties'
     }
     defaultConfig {
