@@ -35,7 +35,7 @@ android {
 }
 
 dependencies {
-    implementation group: 'io.netty', name: 'netty-all', version: '4.1.109.Final'
+    implementation group: 'io.netty', name: 'netty-all', version: '4.1.110.Final'
     // JCE Provider 使用 BouncyCastle
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.78.1'
     implementation group: 'org.bouncycastle', name: 'bcpkix-jdk18on', version: '1.78.1'
