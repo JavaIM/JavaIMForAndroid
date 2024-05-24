@@ -44,6 +44,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.netty.channel.Channel;
+
 public class MainActivity extends AppCompatActivity {
     public static SavedServer.Server UseServer;
     static boolean Session = false;
@@ -141,6 +143,10 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
     public void Connect(View view) {
+        if (client != null && client.getChannel() != null && client.getChannel().isOpen()) {
+            Toast.makeText(this, "客户端正在运行中!", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (UseServer == null)
         {
             Toast.makeText(this, "没有正在使用的服务器", Toast.LENGTH_SHORT).show();
@@ -200,6 +206,10 @@ public class MainActivity extends AppCompatActivity {
 
     private class AndroidClient extends Client
     {
+        public Channel getChannel()
+        {
+            return channel;
+        }
         @Override
         protected ThreadFactory getWorkerThreadFactory() {
             return new ThreadFactory() {
