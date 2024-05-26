@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -15,25 +16,24 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.fragment.app.Fragment;
 
 import com.google.gson.Gson;
 
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 
-public class SettingActivity extends AppCompatActivity {
+public class SettingFragment extends Fragment {
     private final String LogHead = "JavaIM Setting";
 
     private String SAFWriteData = "";
@@ -83,25 +83,21 @@ public class SettingActivity extends AppCompatActivity {
         }
     }
 
+    @Nullable
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        //Super类调用
-        super.onCreate(savedInstanceState);
-        //设置显示界面
-        setContentView(R.layout.setting_activity);
-        // 刷新Spinner
-        RefreshServerSelecter();
-        Spinner ActionSelecter = findViewById(R.id.SelectControlMode);
-        ActionSelecter.setAdapter(new ArrayAdapter<CharSequence>(this, android.R.layout.simple_spinner_dropdown_item, new String[] {
-                "删除服务器",
-                "导出 CA 根证书",
-                "清除 Token",
-                "设为使用中的服务器"
-        }));
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_settings, container, false);
+    }
+
+    private ActivityResultLauncher<Intent> CACertSelectSAFResult;
+    private ActivityResultLauncher<Intent> OnSAFWriteDataPermissionRequestSuccess;
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
         // 注册SAF Activity Result Launcher
 
         // CA证书导入 SAF
-        ActivityResultLauncher<Intent> CACertSelectSAFResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        CACertSelectSAFResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() != Activity.RESULT_OK) {
                 Log.i(LogHead, "Can not select CA Cert, cancel");
                 return;
@@ -116,14 +112,14 @@ public class SettingActivity extends AppCompatActivity {
                 return;
 
             try {
-                addNewServerDialogContentInstance.setCACertData(FileUtils.readTxt(getContentResolver().openInputStream(FileURI), StandardCharsets.UTF_8));
+                addNewServerDialogContentInstance.setCACertData(FileUtils.readTxt(requireActivity().getContentResolver().openInputStream(FileURI), StandardCharsets.UTF_8));
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
 
         // 写入数据到文件 SAF
-        ActivityResultLauncher<Intent> OnSAFWriteDataPermissionRequestSuccess = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        OnSAFWriteDataPermissionRequestSuccess = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() != Activity.RESULT_OK) {
                 Log.i(LogHead, "Can not request write permission, cancel");
                 return;
@@ -138,20 +134,33 @@ public class SettingActivity extends AppCompatActivity {
                 return;
 
             try {
-                FileUtils.writeTxt(getContentResolver().openOutputStream(FileURI), SAFWriteData , StandardCharsets.UTF_8);
+                FileUtils.writeTxt(requireActivity().getContentResolver().openOutputStream(FileURI), SAFWriteData , StandardCharsets.UTF_8);
                 SAFWriteData = "";
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
+    }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        // 刷新Spinner
+        RefreshServerSelecter();
+        Spinner ActionSelecter = requireActivity().findViewById(R.id.SelectControlMode);
+        ActionSelecter.setAdapter(new ArrayAdapter<CharSequence>(requireActivity(), android.R.layout.simple_spinner_dropdown_item, new String[] {
+                "删除服务器",
+                "导出 CA 根证书",
+                "清除 Token",
+                "设为使用中的服务器"
+        }));
 
         // 添加新服务器按钮功能注册
-        findViewById(R.id.addNewServer).setOnClickListener(v -> {
+        requireActivity().findViewById(R.id.addNewServer).setOnClickListener(v -> {
             if (addNewServerDialogContentInstance != null)
                 return;
-            addNewServerDialogContentInstance = new addNewServerDialogContent(this, getLayoutInflater(), CACertSelectSAFResult);
-            new AlertDialog.Builder(this)
+            addNewServerDialogContentInstance = new addNewServerDialogContent(requireActivity(), getLayoutInflater(), CACertSelectSAFResult);
+            new AlertDialog.Builder(requireActivity())
                     .setTitle("添加服务器")
                     .setView(addNewServerDialogContentInstance)
                     .setCancelable(false)
@@ -163,18 +172,18 @@ public class SettingActivity extends AppCompatActivity {
 
                         // 无效情况检测
                         if (content.getPort().isEmpty()) {
-                            Toast.makeText(this, "一些参数似乎无效，请您检查", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireActivity(), "一些参数似乎无效，请您检查", Toast.LENGTH_SHORT).show();
                             return;
                         }
                         int Port = Integer.parseInt(content.getPort());
                         // 无效情况检测
                         if (CACertData.isEmpty() || ServerName.isEmpty() || IPAddress.isEmpty() || Port <= 0 || Port > 65535) {
-                            Toast.makeText(this, "一些参数似乎无效，请您检查", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireActivity(), "一些参数似乎无效，请您检查", Toast.LENGTH_SHORT).show();
                             return;
                         }
 
                         // 准备写入
-                        File ServerList = new File(getFilesDir(),"servers.json");
+                        File ServerList = new File(requireActivity().getFilesDir(),"servers.json");
                         Gson gson = new Gson();
 
                         // 准备内容
@@ -208,7 +217,7 @@ public class SettingActivity extends AppCompatActivity {
                                 {
                                     if (newServer.getServerName().equals(server.getServerName()))
                                     {
-                                        Toast.makeText(this, "已经有重名服务器添加过了!", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(requireActivity(), "已经有重名服务器添加过了!", Toast.LENGTH_SHORT).show();
                                         return;
                                     }
                                     if (server.isIsUsingServer())
@@ -220,13 +229,13 @@ public class SettingActivity extends AppCompatActivity {
                                 FileUtils.writeTxt(ServerList, gson.toJson(savedServer), StandardCharsets.UTF_8);
                             }
 
-                            MainActivity.UseServer = newServer;
+                            HomeFragment.UseServer = newServer;
                         } catch (Throwable t) {
                             t.printStackTrace();
-                            Toast.makeText(this, "写入文件时出错", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireActivity(), "写入文件时出错", Toast.LENGTH_SHORT).show();
                             return;
                         }
-                        Toast.makeText(this, "导入成功!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireActivity(), "导入成功!", Toast.LENGTH_SHORT).show();
                         RefreshServerSelecter();
                     })
                     .setOnDismissListener((dialog) -> addNewServerDialogContentInstance = null)
@@ -234,16 +243,16 @@ public class SettingActivity extends AppCompatActivity {
                     .show();
         });
         // 添加执行操作按钮功能注册
-        findViewById(R.id.ExecuteServerControl).setOnClickListener(v -> {
+        requireActivity().findViewById(R.id.ExecuteServerControl).setOnClickListener(v -> {
             // 读取用户选择
             String SelectAction = (String) ActionSelecter.getSelectedItem();
-            String SelectServerName = (String) ((Spinner) findViewById(R.id.SelectServer)).getSelectedItem();
+            String SelectServerName = (String) ((Spinner) requireActivity().findViewById(R.id.SelectServer)).getSelectedItem();
 
             // 读取文件数据
             SavedServer.Server SelectServer = null;
             SavedServer savedServers;
             Gson gson = new Gson();
-            File servers = new File(getFilesDir(),"servers.json");
+            File servers = new File(requireActivity().getFilesDir(),"servers.json");
 
             try {
                 savedServers = gson.fromJson(FileUtils.readTxt(servers, StandardCharsets.UTF_8), SavedServer.class);
@@ -262,9 +271,7 @@ public class SettingActivity extends AppCompatActivity {
             }
 
             if (SelectServer.isIsUsingServer())
-            {
-                MainActivity.UseServer = SelectServer;
-            }
+                HomeFragment.UseServer = SelectServer;
 
             // 执行操作
             switch (SelectAction)
@@ -273,7 +280,7 @@ public class SettingActivity extends AppCompatActivity {
                     savedServers.getServers().remove(SelectServer);
                     if (SelectServer.isIsUsingServer())
                     {
-                        MainActivity.UseServer = null;
+                        HomeFragment.UseServer = null;
                     }
                     break;
                 }
@@ -300,12 +307,12 @@ public class SettingActivity extends AppCompatActivity {
                         server.setIsUsingServer(false);
                     }
                     SelectServer.setIsUsingServer(true);
-                    MainActivity.UseServer = SelectServer;
+                    HomeFragment.UseServer = SelectServer;
                     break;
                 }
 
                 default: {
-                    Toast.makeText(this, "未知的操作!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireActivity(), "未知的操作!", Toast.LENGTH_SHORT).show();
                     break;
                 }
             }
@@ -323,10 +330,12 @@ public class SettingActivity extends AppCompatActivity {
     }
 
     private void RefreshServerSelecter() {
+        if (getActivity() == null)
+            return;
         // 获取服务器列表
         List<String> ServerNames = new ArrayList<>();
         try {
-            File servers = new File(getFilesDir(),"servers.json");
+            File servers = new File(requireActivity().getFilesDir(),"servers.json");
             if (!servers.exists())
                 return;
             if (servers.length() == 0)
@@ -343,7 +352,7 @@ public class SettingActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         // 获取服务器选择框
-        Spinner servers = findViewById(R.id.SelectServer);
-        servers.setAdapter(new ArrayAdapter<CharSequence>(this, android.R.layout.simple_spinner_dropdown_item, ServerNames.toArray(new String[0])));
+        Spinner servers = requireActivity().findViewById(R.id.SelectServer);
+        servers.setAdapter(new ArrayAdapter<CharSequence>(requireActivity(), android.R.layout.simple_spinner_dropdown_item, ServerNames.toArray(new String[0])));
     }
 }

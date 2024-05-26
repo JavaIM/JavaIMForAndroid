@@ -16,18 +16,13 @@
         tools:targetApi="33">
         <activity
             android:name=".MainActivity"
+            android:windowSoftInputMode="adjustPan"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity
-            android:name=".SettingActivity"
-            android:exported="false"
-            android:label="@string/SettingActivityLabel"
-            >
         </activity>
     </application>
 </manifest>

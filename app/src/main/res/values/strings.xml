@@ -16,4 +16,6 @@
     <string name="ChangeToSettingActivity">前往设置页面</string>
     <string name="SaveIpAddressChangeAndSavePortChange">保存并退出</string>
     <string name="ClearSocketDisplay">清屏</string>
+    <string name="title_home">主页</string>
+    <string name="title_setting">设置</string>
 </resources>
