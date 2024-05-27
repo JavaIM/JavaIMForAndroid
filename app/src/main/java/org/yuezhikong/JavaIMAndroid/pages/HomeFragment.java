@@ -1,4 +1,4 @@
-package org.yuezhikong.JavaIMAndroid;
+package org.yuezhikong.JavaIMAndroid.pages;
 
 import android.graphics.Color;
 import android.os.Bundle;
@@ -18,14 +18,16 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.Fragment;
 
 import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
 import org.yuezhikong.Client;
+import org.yuezhikong.JavaIMAndroid.R;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 import org.yuezhikong.JavaIMAndroid.utils.NetworkHelper;
+import org.yuezhikong.JavaIMAndroid.utils.NonCrashThreadUncaughtExceptionHandler;
+import org.yuezhikong.JavaIMAndroid.utils.SavedServer;
 import org.yuezhikong.Protocol.ChatProtocol;
 import org.yuezhikong.Protocol.GeneralProtocol;
 
@@ -47,7 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.channel.Channel;
 
-public class HomeFragment extends Fragment {
+public class HomeFragment extends JavaIMPage {
     public static SavedServer.Server UseServer;
     static boolean Session = false;
     private boolean StartComplete = false;
@@ -59,6 +61,8 @@ public class HomeFragment extends Fragment {
      */
     public void OutputToChatLog(CharSequence msg) {
         requireActivity().runOnUiThread(() -> {
+            if (getActivity() == null)
+                return;
             TextView view = requireActivity().findViewById(R.id.ChatLog);
             RichTextTextViewWrite(msg,view);
             if (getActivity() == null)
@@ -82,15 +86,22 @@ public class HomeFragment extends Fragment {
     }
     private void ErrorOutputToUserScreen(int id)
     {
-        requireActivity().runOnUiThread(()-> Toast.makeText(requireActivity(),getResources().getString(id),Toast.LENGTH_LONG).show());
+        requireActivity().runOnUiThread(()-> {
+            if (getActivity() == null)
+                return;
+            Toast.makeText(requireActivity(),getResources().getString(id),Toast.LENGTH_LONG).show();
+        });
     }
 
     private void ClearScreen(View view) {
         ClearScreen();
     }
     public void ClearScreen() {
-        requireActivity().runOnUiThread(()-> ((TextView) requireActivity().findViewById(R.id.ChatLog)).setText(""));
-        requireActivity().runOnUiThread(()-> ((TextView) requireActivity().findViewById(R.id.ChatLog)).setText(""));
+        requireActivity().runOnUiThread(()-> {
+            if (getActivity() == null)
+                return;
+            ((TextView) requireActivity().findViewById(R.id.ChatLog)).setText("");
+        });
     }
 
     @Nullable
@@ -133,6 +144,8 @@ public class HomeFragment extends Fragment {
                 }
             }).run();
             requireActivity().runOnUiThread(() -> {
+                if (getActivity() == null)
+                    return;
                 final TextView DisplayUseCACertsTextView = requireActivity().findViewById(R.id.DisplayUseCACert);
                 if (UseServer == null) {
                     DisplayUseCACertsTextView.setText("目前没有使用的服务器，可在设置中选择/导入");

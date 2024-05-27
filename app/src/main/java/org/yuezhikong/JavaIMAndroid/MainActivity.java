@@ -1,6 +1,5 @@
 package org.yuezhikong.JavaIMAndroid;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 
@@ -11,9 +10,15 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import org.yuezhikong.JavaIMAndroid.pages.HomeFragment;
+import org.yuezhikong.JavaIMAndroid.pages.JavaIMPage;
+import org.yuezhikong.JavaIMAndroid.pages.SettingFragment;
+
 public class MainActivity extends AppCompatActivity {
     private HomeFragment homeFragment;
     private SettingFragment settingFragment;
+
+    private JavaIMPage currentPage;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -31,21 +36,23 @@ public class MainActivity extends AppCompatActivity {
 
         BottomNavigationView navigationView = findViewById(R.id.navigationView);
         navigationView.setOnItemSelectedListener(menuItem -> {
-            Fragment fragment;
+            if (!currentPage.isStarted())
+                return false;
             if (menuItem.getItemId() == R.id.navigation_home_page)
-                fragment = homeFragment;
+                currentPage = homeFragment;
             else if (menuItem.getItemId() == R.id.navigation_settings_page)
-                fragment = settingFragment;
+                currentPage = settingFragment;
             else
                 return false;
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            transaction.replace(R.id.mainContainer, fragment);
+            transaction.replace(R.id.mainContainer, currentPage);
             transaction.commit();
             return true;
         });
 
+        currentPage = homeFragment;
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.mainContainer, homeFragment);
+        transaction.replace(R.id.mainContainer, currentPage);
         transaction.commit();
     }
 }

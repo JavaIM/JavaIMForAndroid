@@ -1,4 +1,4 @@
-package org.yuezhikong.JavaIMAndroid;
+package org.yuezhikong.JavaIMAndroid.pages;
 
 import android.app.Activity;
 import android.content.Context;
@@ -24,6 +24,8 @@ import androidx.fragment.app.Fragment;
 
 import com.google.gson.Gson;
 
+import org.yuezhikong.JavaIMAndroid.R;
+import org.yuezhikong.JavaIMAndroid.utils.SavedServer;
 import org.yuezhikong.JavaIMAndroid.utils.FileUtils;
 
 import java.io.File;
@@ -33,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class SettingFragment extends Fragment {
+public class SettingFragment extends JavaIMPage {
     private final String LogHead = "JavaIM Setting";
 
     private String SAFWriteData = "";

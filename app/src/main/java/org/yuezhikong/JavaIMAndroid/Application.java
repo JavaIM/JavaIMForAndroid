@@ -16,6 +16,5 @@ public class Application extends MultiDexApplication {
         // 设置 JCE Provider
         Security.removeProvider("BC");
         Security.addProvider(new BouncyCastleProvider());
-        Toast.makeText(this, "温馨提示，请勿快速切换界面", Toast.LENGTH_SHORT).show();
     }
 }
