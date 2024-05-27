@@ -23,12 +23,14 @@ public class JavaIMPage extends Fragment {
         Started = true;
     }
 
+    @CallSuper
     @Override
     public void onAttach(@NonNull Context context) {
         Started = false;
         super.onAttach(context);
     }
 
+    @CallSuper
     @Override
     public void onDetach() {
         Started = false;
