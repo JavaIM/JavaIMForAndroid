@@ -60,7 +60,7 @@ jobs:
       run: mkdir artifact && cp app/build/outputs/apk/release/*.apk artifact
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v4.3.3
+      uses: actions/upload-artifact@v4.3.4
       with:
           name: JavaIMAndroid
           path: artifact
