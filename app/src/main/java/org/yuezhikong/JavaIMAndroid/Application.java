@@ -3,6 +3,7 @@ package org.yuezhikong.JavaIMAndroid;
 import android.widget.Toast;
 
 import androidx.multidex.MultiDexApplication;
+import androidx.annotation.NonNull;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -21,7 +22,7 @@ public class Application extends MultiDexApplication {
             @Override
             public void uncaughtException(@NonNull Thread thread, @NonNull Throwable throwable) {
                 super.uncaughtException(thread,throwable);
-                Toast.makeText(this,"程序遇到致命错误:"+throwable.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(Application.this,"程序遇到致命错误:"+throwable.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
