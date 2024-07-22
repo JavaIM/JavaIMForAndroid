@@ -23,6 +23,6 @@ public class Application extends MultiDexApplication {
                 super.uncaughtException(thread,throwable);
                 Toast.makeText(this,"程序遇到致命错误:"+throwable.getMessage(), Toast.LENGTH_LONG).show();
             }
-        })
+        });
     }
 }
