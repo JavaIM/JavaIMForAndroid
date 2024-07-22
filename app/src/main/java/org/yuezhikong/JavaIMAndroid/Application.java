@@ -16,5 +16,13 @@ public class Application extends MultiDexApplication {
         // 设置 JCE Provider
         Security.removeProvider("BC");
         Security.addProvider(new BouncyCastleProvider());
+        // 设置默认崩溃处理器
+        Thread.setDefaultUncaughtExceptionHandler(new org.yuezhikong.JavaIMAndroid.utils.NonCrashThreadUncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(@NonNull Thread thread, @NonNull Throwable throwable) {
+                super.uncaughtException(thread,throwable);
+                Toast.makeText(this,"程序遇到致命错误:"+throwable.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        })
     }
 }
