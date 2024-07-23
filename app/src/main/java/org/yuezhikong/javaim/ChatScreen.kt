@@ -1,14 +1,14 @@
 package org.yuezhikong.javaim
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
@@ -37,49 +37,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 import kotlinx.coroutines.launch
-import org.yuezhikong.javaim.ui.theme.JavaIMTheme
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            JavaIMTheme {
-//                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-//                    Greeting(
-//                        name = "Android",
-//                        modifier = Modifier.padding(innerPadding)
-//                    )
-//                }
-                Host()
-            }
-        }
-    }
-}
-
-@Composable
-fun Host() {
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "host") {
-        composable("host") { HostScreen(navController) }
-        composable("second") { ChatScreen(navController) }
-    }
-}
-
-
+data class BottomNavItem(val route: String, val icon: ImageVector, val label: String, val resourceId: Int)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HostScreen(navController: androidx.navigation.NavController) {
+fun ChatScreen(navController: androidx.navigation.NavController) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
+    val items = listOf(
+        BottomNavItem("home", Icons.Filled.Home, "Home", R.string.home),
+        BottomNavItem("profile", Icons.Filled.AccountCircle, "Profile", R.string.profile),
+        BottomNavItem("settings", Icons.Filled.Settings, "Settings", R.string.settings)
+    )
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -87,11 +66,11 @@ fun HostScreen(navController: androidx.navigation.NavController) {
                 Text("JavaIM", modifier = Modifier.padding(16.dp))
                 HorizontalDivider()
                 NavigationDrawerItem(
-                    label = { Text(text = "Host") },
+                    label = { Text(text = "Chat") },
                     selected = false,
                     onClick = { navController.navigate("host") }
                 )
-                NavigationDrawerItem(label = { Text(text = "Chat")}, selected = false, onClick = {navController.navigate("second")})
+                NavigationDrawerItem(label = { Text(text = "Chat") }, selected = false, onClick = {navController.navigate("second")})
             }
         },
     ){
@@ -121,25 +100,32 @@ fun HostScreen(navController: androidx.navigation.NavController) {
                 )
             },
             bottomBar = {
-                BottomAppBar(
-                    actions = {
-                        IconButton(onClick = { /* do something */ }) {
-                            Icon(
-                                Icons.Filled.Search,
-                                contentDescription = "Localized description",
-                            )
-                        }
-                    },
-                    floatingActionButton = {
-                        FloatingActionButton(
-                            onClick = { showBottomSheet = true },
-                            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-                            elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
-                        ) {
-                            Icon(Icons.Filled.Add, "Localized description")
-                        }
+                BottomNavigation {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navBackStackEntry?.destination
+                    items.forEach { screen ->
+                        BottomNavigationItem(
+                            icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
+                            label = { Text(stringResource(screen.resourceId)) },
+                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    // Pop up to the start destination of the graph to
+                                    // avoid building up a large stack of destinations
+                                    // on the back stack as users select items
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    // Avoid multiple copies of the same destination when
+                                    // reselecting the same item
+                                    launchSingleTop = true
+                                    // Restore state when reselecting a previously selected item
+                                    restoreState = true
+                                }
+                            }
+                        )
                     }
-                )
+                }
             },
         ) { innerPadding ->
             Column(
@@ -151,7 +137,7 @@ fun HostScreen(navController: androidx.navigation.NavController) {
                     modifier = Modifier.padding(8.dp),
                     text =
                     """
-                    114514
+                    1919810
                 """.trimIndent(),
                 )
             }
@@ -177,4 +163,3 @@ fun HostScreen(navController: androidx.navigation.NavController) {
         }
     }
 }
-
